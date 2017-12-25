@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>decanstructor</name>
+  <version>0.0.1</version>
+  <description>The decanstructor package</description>
+  <maintainer email="jwhitley@autonomoustuff.com">Josh Whitley</maintainer>
+  <author email="jwhitley@autonomoustuff.com">Josh Whitley</author>
+
+  <license>MIT</license>
+  <!-- <url type="website">http://wiki.ros.org/decanstructor</url> -->
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+</package>
