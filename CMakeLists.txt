@@ -13,7 +13,9 @@ find_package(catkin REQUIRED
 set(wxWidgets_CONFIGURATION mswu)
 
 find_package(wxWidgets COMPONENTS
-  core base
+  core
+  base
+  adv
   REQUIRED
 )
 

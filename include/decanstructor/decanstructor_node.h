@@ -8,6 +8,7 @@
 #ifndef WX_PRECOMP
     #include <wx/wx.h>
 #endif
+#include <wx/grid.h>
 
 #include <ros/ros.h>
 #include <can_msgs/Frame.h>
@@ -26,6 +27,8 @@ namespace DeCANstructor
       DCFrame(const wxString& title,
               const wxPoint& pos,
               const wxSize& size);
+
+      std::shared_ptr<wxGrid> active_grid;
 
     private:
       void OnHello(wxCommandEvent& event);
