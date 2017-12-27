@@ -2,6 +2,7 @@
 #define DECANSTRUCTOR_NODE_H
 
 #include <memory>
+#include <cstdio>
 
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
@@ -34,20 +35,29 @@ namespace DeCANstructor
       wxDECLARE_EVENT_TABLE();
   };
 
+  class DCRosNode
+  {
+    public:
+      DCRosNode();
+
+      void CanCallback(const can_msgs::Frame::ConstPtr& msg);
+
+    private:
+      std::unique_ptr<ros::NodeHandle> node_handle;
+      std::unique_ptr<ros::NodeHandle> private_handle;
+      std::unique_ptr<ros::AsyncSpinner> spinner;
+      ros::Subscriber can_sub;
+  };
+
   class DCNode :
     public wxApp
   {
     public:
       virtual bool OnInit();
-      void CanCallback(const::can_msgs::Frame::ConstPtr& msg);
+      DCFrame* frame;
 
     private:
-      std::unique_ptr<DCFrame> frame;
-
-      std::unique_ptr<ros::NodeHandle> node_handle;
-      std::unique_ptr<ros::NodeHandle> private_handle;
-      std::unique_ptr<ros::AsyncSpinner> spinner;
-      ros::Subscriber can_sub;
+      std::unique_ptr<DCRosNode> ros_node;
   };
 
 	wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)

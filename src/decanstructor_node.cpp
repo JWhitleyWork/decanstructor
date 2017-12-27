@@ -2,28 +2,6 @@
 
 using namespace DeCANstructor;
 
-bool DCNode::OnInit()
-{
-  // wxWidgets Init
-  frame = std::unique_ptr<DCFrame>(new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340)));
-  frame->Show(true);
-
-  // ROS Init
-  ros::init(wxGetApp().argc, wxGetApp().argv, "DeCANstructor");
-  node_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle);
-  private_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle("~"));
-  spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
-
-  can_sub = node_handle->subscribe("can_in", 100, &DCNode::CanCallback, this);
-
-  return true;
-}
-
-void DCNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
-{
-  frame->SetStatusText("We got one!");
-}
-
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
@@ -65,4 +43,34 @@ void DCFrame::OnAbout(wxCommandEvent& event)
 void DCFrame::OnHello(wxCommandEvent& event)
 {
   wxLogMessage("Hey.");
+}
+
+DCRosNode::DCRosNode()
+{
+  // ROS Init
+  ros::init(wxGetApp().argc, wxGetApp().argv, "DeCANstructor");
+  node_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle);
+  private_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle("~"));
+  spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
+
+  can_sub = node_handle->subscribe("can_in", 100, &DCRosNode::CanCallback, this);
+  
+  spinner->start();
+}
+
+void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
+{
+  wxGetApp().frame->PushStatusText("We got one!");
+}
+
+bool DCNode::OnInit()
+{
+  // wxWidgets Init
+  frame = new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340));
+  frame->Show(true);
+
+  // ROS Node init
+  ros_node = std::unique_ptr<DCRosNode>(new DCRosNode);
+
+  return true;
 }
