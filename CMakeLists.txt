@@ -7,6 +7,7 @@ add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED
   roscpp
+  can_msgs
 )
 
 set(wxWidgets_CONFIGURATION mswu)
@@ -48,6 +49,7 @@ catkin_package(
 #  LIBRARIES decanstructor
   CATKIN_DEPENDS
   roscpp
+  can_msgs
 #  DEPENDS system_lib
 )
 

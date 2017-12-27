@@ -4,16 +4,36 @@ using namespace DeCANstructor;
 
 bool DCNode::OnInit()
 {
-  DCFrame* frame = new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340));
+  // wxWidgets Init
+  frame = std::unique_ptr<DCFrame>(new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340)));
   frame->Show(true);
+
+  // ROS Init
+  ros::init(wxGetApp().argc, wxGetApp().argv, "DeCANstructor");
+  node_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle);
+  private_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle("~"));
+  spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
+
+  can_sub = node_handle->subscribe("can_in", 100, &DCNode::CanCallback, this);
+
   return true;
+}
+
+void DCNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
+{
+  frame->SetStatusText("We got one!");
 }
 
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
-  wxFrame(NULL, wxID_ANY, title, pos, size)
+  wxFrame(NULL,
+          wxID_ANY,
+          title,
+          pos,
+          size)
 {
+  // Set up basic window properties
   wxMenu* menu_file = new wxMenu;
   menu_file->Append(ID_Hello, "&Hello...\tCtrl-H", "Help string shown in status bar for this menu item");
   menu_file->AppendSeparator();
