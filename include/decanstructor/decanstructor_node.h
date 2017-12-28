@@ -20,6 +20,28 @@ namespace DeCANstructor
     ID_Hello = 1
   };
 
+  class DCGridCellHexRenderer :
+    public wxGridCellStringRenderer
+  {
+    public:
+      virtual void Draw(wxGrid& grid,
+                        wxGridCellAttr& attr,
+                        wxDC& dc,
+                        const wxRect& rectCell,
+                        int row, int col,
+                        bool isSelected);
+
+    protected:
+      virtual wxString GetString(const wxGrid& grid, int row, int col);
+  };
+
+  class DCGridCellPrefixedHexRenderer :
+    public DCGridCellHexRenderer
+  {
+    protected:
+      virtual wxString GetString(const wxGrid& grid, int row, int col);
+  };
+
   class DCFrame :
     public wxFrame
   {
@@ -29,12 +51,11 @@ namespace DeCANstructor
               const wxSize& size);
 
       std::shared_ptr<wxGrid> active_grid;
+      std::shared_ptr<wxCheckListBox> selector_box;
 
     private:
-      void OnHello(wxCommandEvent& event);
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
-      void OnResize(wxSizeEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -65,10 +86,8 @@ namespace DeCANstructor
   };
 
 	wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)
-		EVT_MENU(ID_Hello,   DCFrame::OnHello)
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
-    EVT_SIZE(DCFrame::OnResize)
 	wxEND_EVENT_TABLE()
 }
 
