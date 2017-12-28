@@ -33,7 +33,7 @@ DCFrame::DCFrame(const wxString& title,
   wxFlexGridSizer* main_sizer = new wxFlexGridSizer(1, 2, 5, 5);
 
   // Create the main grid
-  active_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(100, 350)));
+  active_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(500, 350)));
 
   active_grid->CreateGrid(1, 10);
   active_grid->EnableEditing(false);
@@ -49,7 +49,17 @@ DCFrame::DCFrame(const wxString& title,
   active_grid->SetColLabelValue(6, "5");
   active_grid->SetColLabelValue(7, "6");
   active_grid->SetColLabelValue(8, "7");
-  active_grid->SetColLabelValue(9, "Last Rcvd");
+  active_grid->SetColLabelValue(9, "Last Rcvd (ms)");
+
+  active_grid->SetColSize(1, 40);
+  active_grid->SetColSize(2, 40);
+  active_grid->SetColSize(3, 40);
+  active_grid->SetColSize(4, 40);
+  active_grid->SetColSize(5, 40);
+  active_grid->SetColSize(6, 40);
+  active_grid->SetColSize(7, 40);
+  active_grid->SetColSize(8, 40);
+  active_grid->SetColSize(9, 90);
 
   main_sizer->Add(active_grid.get());
 
@@ -69,6 +79,11 @@ void DCFrame::OnAbout(wxCommandEvent& event)
 void DCFrame::OnHello(wxCommandEvent& event)
 {
   wxLogMessage("Hey.");
+}
+
+void DCFrame::OnResize(wxSizeEvent& event)
+{
+  Layout();
 }
 
 DCRosNode::DCRosNode()

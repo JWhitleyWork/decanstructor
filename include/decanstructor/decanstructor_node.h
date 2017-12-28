@@ -34,6 +34,7 @@ namespace DeCANstructor
       void OnHello(wxCommandEvent& event);
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
+      void OnResize(wxSizeEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -67,6 +68,7 @@ namespace DeCANstructor
 		EVT_MENU(ID_Hello,   DCFrame::OnHello)
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
+    EVT_SIZE(DCFrame::OnResize)
 	wxEND_EVENT_TABLE()
 }
 
