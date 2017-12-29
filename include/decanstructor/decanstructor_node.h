@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <cstdio>
+#include <mutex>
+#include <unordered_map>
 
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
@@ -15,31 +17,20 @@
 
 namespace DeCANstructor
 {
+  wxDECLARE_EVENT(wxEVT_CMD_UPDATE_GRID, wxThreadEvent);
+
   enum
   {
     ID_Hello = 1
   };
 
-  class DCGridCellHexRenderer :
-    public wxGridCellStringRenderer
+  struct CanMsgDetail
   {
-    public:
-      virtual void Draw(wxGrid& grid,
-                        wxGridCellAttr& attr,
-                        wxDC& dc,
-                        const wxRect& rectCell,
-                        int row, int col,
-                        bool isSelected);
-
-    protected:
-      virtual wxString GetString(const wxGrid& grid, int row, int col);
-  };
-
-  class DCGridCellPrefixedHexRenderer :
-    public DCGridCellHexRenderer
-  {
-    protected:
-      virtual wxString GetString(const wxGrid& grid, int row, int col);
+    std::vector<uint8_t> bytes;
+    std::vector<float> last_updated;
+    float time_rcvd;
+    float time_last_rcvd;
+    int table_index;
   };
 
   class DCFrame :
@@ -56,6 +47,7 @@ namespace DeCANstructor
     private:
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
+      void OnGridUpdate(wxThreadEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -80,6 +72,8 @@ namespace DeCANstructor
     public:
       virtual bool OnInit();
       DCFrame* frame;
+      std::unordered_map<uint32_t, std::shared_ptr<CanMsgDetail>> rcvd_msgs;
+      std::mutex rcvd_msgs_mut;
 
     private:
       std::unique_ptr<DCRosNode> ros_node;
@@ -89,6 +83,8 @@ namespace DeCANstructor
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
 	wxEND_EVENT_TABLE()
+
+  wxDEFINE_EVENT(wxEVT_CMD_UPDATE_GRID, wxThreadEvent);
 }
 
 wxIMPLEMENT_APP(DeCANstructor::DCNode);

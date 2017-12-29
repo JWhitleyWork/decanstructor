@@ -2,143 +2,6 @@
 
 using namespace DeCANstructor;
 
-void DCGridCellHexRenderer::Draw(wxGrid& grid,
-                                 wxGridCellAttr& attr,
-                                 wxDC& dc,
-                                 const wxRect& rectCell,
-                                 int row, int col,
-                                 bool isSelected)
-{
-  wxRect rect = rectCell;
-  rect.Inflate(-1);
-
-  // erase only this cells background, overflow cells should have been erased
-  wxGridCellRenderer::Draw(grid, attr, dc, rectCell, row, col, isSelected);
-
-  int hAlign, vAlign;
-
-  attr.GetAlignment(&hAlign, &vAlign);
-
-  int overflowCols = 0;
-
-  if (attr.GetOverflow())
-  {
-    int cols = grid.GetNumberCols();
-    int best_width = GetBestSize(grid,attr,dc,row,col).GetWidth();
-    int cell_rows, cell_cols;
-
-    attr.GetSize( &cell_rows, &cell_cols ); // shouldn't get here if <= 0
-
-    if ((best_width > rectCell.width) && (col < cols) && grid.GetTable())
-    {
-      int i, c_cols, c_rows;
-
-      for (i = col+cell_cols; i < cols; i++)
-      {
-        bool is_empty = true;
-
-        for (int j=row; j < row + cell_rows; j++)
-        {
-          // check w/ anchor cell for multicell block
-          grid.GetCellSize(j, i, &c_rows, &c_cols);
-
-          if (c_rows > 0)
-            c_rows = 0;
-
-          if (!grid.GetTable()->IsEmptyCell(j + c_rows, i))
-          {
-            is_empty = false;
-            break;
-          }
-        }
-
-        if (is_empty)
-        {
-          rect.width += grid.GetColSize(i);
-        }
-        else
-        {
-          i--;
-          break;
-        }
-
-        if (rect.width >= best_width)
-          break;
-      }
-
-      overflowCols = i - col - cell_cols + 1;
-
-      if (overflowCols >= cols)
-        overflowCols = cols - 1;
-    }
-
-    if (overflowCols > 0) // redraw overflow cells w/ proper hilight
-    {
-      hAlign = wxALIGN_LEFT; // if oveflowed then it's left aligned
-      wxRect clip = rect;
-      clip.x += rectCell.width;
-
-      // draw each overflow cell individually
-      int col_end = col + cell_cols + overflowCols;
-
-      if (col_end >= grid.GetNumberCols())
-        col_end = grid.GetNumberCols() - 1;
-
-      for (int i = col + cell_cols; i <= col_end; i++)
-      {
-        clip.width = grid.GetColSize(i) - 1;
-        dc.DestroyClippingRegion();
-        dc.SetClippingRegion(clip);
-
-        SetTextColoursAndFont(grid, attr, dc,
-                              grid.IsInSelection(row,i));
-
-        grid.DrawTextRectangle(dc, grid.GetCellValue(row, col),
-                               rect, hAlign, vAlign);
-        clip.x += grid.GetColSize(i) - 1;
-      }
-
-      rect = rectCell;
-      rect.Inflate(-1);
-      rect.width++;
-
-      dc.DestroyClippingRegion();
-    }
-  }
-
-  // now we only have to draw the text
-  SetTextColoursAndFont(grid, attr, dc, isSelected);
-
-  grid.DrawTextRectangle(dc, GetString(grid, row, col),
-                         rect, hAlign, vAlign);
-}
-
-wxString DCGridCellHexRenderer::GetString(const wxGrid& grid, int row, int col)
-{
-  wxGridTableBase* table = grid.GetTable();
-  wxString text;
-
-  if (table->CanGetValueAs(row, col, wxGRID_VALUE_NUMBER))
-    text.Printf(wxT("%X"), table->GetValueAsLong(row, col));
-  else
-    text = table->GetValue(row, col);
-
-  return text;
-}
-
-wxString DCGridCellPrefixedHexRenderer::GetString(const wxGrid& grid, int row, int col)
-{
-  wxGridTableBase* table = grid.GetTable();
-  wxString text;
-
-  if (table->CanGetValueAs(row, col, wxGRID_VALUE_NUMBER))
-    text.Printf(wxT("%#X"), table->GetValueAsLong(row, col));
-  else
-    text = table->GetValue(row, col);
-
-  return text;
-}
-
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
@@ -181,7 +44,7 @@ DCFrame::DCFrame(const wxString& title,
 
   // TODO: Automatically resize grid columns based on available space on window resize.
 
-  active_grid->CreateGrid(1, 10);
+  active_grid->CreateGrid(0, 10);
   active_grid->EnableEditing(false);
   active_grid->DisableDragColSize();
   active_grid->DisableDragRowSize();
@@ -189,9 +52,6 @@ DCFrame::DCFrame(const wxString& title,
   active_grid->SetSelectionMode(wxGrid::wxGridSelectRowsOrColumns);
   active_grid->SetColLabelSize(wxGRID_AUTOSIZE);
   active_grid->SetRowLabelSize(40);
-
-  DCGridCellHexRenderer* hex_renderer = new DCGridCellHexRenderer();
-  active_grid->SetDefaultRenderer(hex_renderer);
 
   active_grid->SetColLabelValue(0, "ID");
   active_grid->SetColLabelValue(1, "0");
@@ -210,6 +70,21 @@ DCFrame::DCFrame(const wxString& title,
   active_grid->SetColMinimalAcceptableWidth(40);
   active_grid->SetColMinimalWidth(0, 50);
   active_grid->SetColMinimalWidth(9, 95);
+
+  wxGridCellAttr* id_attr = new wxGridCellAttr();
+  id_attr->SetAlignment(wxALIGN_RIGHT, wxALIGN_CENTER);
+
+  active_grid->SetColAttr(0, id_attr);
+
+  for (uint8_t i = 1; i < 9; i++)
+  {
+    wxGridCellAttr* byte_attr = new wxGridCellAttr();
+    byte_attr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
+
+    active_grid->SetColAttr(i, byte_attr);
+  }
+
+  active_grid->SetColFormatFloat(9);
 
   main_sizer->Add(active_grid.get(), main_flags);
 
@@ -231,6 +106,8 @@ DCFrame::DCFrame(const wxString& title,
   main_sizer->AddGrowableRow(1);
 
   SetSizerAndFit(main_sizer);
+
+  Connect(wxID_ANY, wxEVT_CMD_UPDATE_GRID, wxThreadEventHandler(DCFrame::OnGridUpdate), NULL, this);
 }
 
 void DCFrame::OnExit(wxCommandEvent& event)
@@ -241,6 +118,46 @@ void DCFrame::OnExit(wxCommandEvent& event)
 void DCFrame::OnAbout(wxCommandEvent& event)
 {
 	wxMessageBox("Copyright 2017 Joshua Whitley, All Rights Reserved", "About DeCANstructor", wxOK | wxICON_INFORMATION );
+}
+
+void DCFrame::OnGridUpdate(wxThreadEvent& event)
+{
+  std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
+  auto& msgs_local = wxGetApp().rcvd_msgs;
+  std::shared_ptr<CanMsgDetail> found_msg = std::shared_ptr<CanMsgDetail>(msgs_local[event.GetInt()]);
+
+  if (found_msg->table_index < 0)
+  {
+    // Message not in grid
+    active_grid->AppendRows();
+    found_msg->table_index = active_grid->GetNumberRows() - 1;
+    active_grid->SetCellValue(found_msg->table_index, 0, wxString::Format(wxT("0x%X"), event.GetInt()));
+
+    for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
+    {
+      active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
+    }
+
+    active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%.2f"), 0.00));
+  }
+  else
+  {
+    // Message in grid
+    for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
+    {
+      wxString formatted_byte = wxString::Format("%X", found_msg->bytes[i]);
+      wxString current_byte = active_grid->GetCellValue(found_msg->table_index, i + 1);
+
+      if (formatted_byte != current_byte)
+      {
+        active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
+      }
+    }
+
+    float time_diff = found_msg->time_rcvd - found_msg->time_last_rcvd;
+
+    active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%.2f"), time_diff));
+  }
 }
 
 DCRosNode::DCRosNode()
@@ -258,7 +175,47 @@ DCRosNode::DCRosNode()
 
 void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
 {
-  wxGetApp().frame->PushStatusText("We got one!");
+  std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
+
+  auto& msgs_local = wxGetApp().rcvd_msgs;
+  auto found_msg = msgs_local.find(msg->id);
+  float header_ms = msg->header.stamp.toSec() * 1000.0;
+
+  if (found_msg != msgs_local.end())
+  {
+    // The message has already been received.
+    for (uint8_t i = 0; i < msg->data.size(); i++)
+    {
+      if (msg->data[i] != found_msg->second->bytes[i])
+      {
+        found_msg->second->bytes[i] = msg->data[i];
+        found_msg->second->last_updated[i] = header_ms;
+      }
+    }
+
+    found_msg->second->time_last_rcvd = found_msg->second->time_rcvd;
+    found_msg->second->time_rcvd = header_ms;
+  }
+  else
+  {
+    // This is a new message.
+    std::shared_ptr<CanMsgDetail> new_msg = std::shared_ptr<CanMsgDetail>(new CanMsgDetail);
+    new_msg->table_index = -1;
+
+    for (uint8_t i = 0; i < msg->data.size(); i++)
+    {
+      new_msg->bytes.push_back(msg->data[i]);
+      new_msg->last_updated.push_back(header_ms);
+    }
+
+    new_msg->time_rcvd = header_ms;
+    new_msg->time_last_rcvd = 0.0;
+    msgs_local.insert(std::make_pair(msg->id, new_msg));
+  }
+
+  wxThreadEvent evt(wxEVT_CMD_UPDATE_GRID);
+  evt.SetInt(msg->id);
+  wxGetApp().frame->GetEventHandler()->QueueEvent(evt.Clone());
 }
 
 bool DCNode::OnInit()
