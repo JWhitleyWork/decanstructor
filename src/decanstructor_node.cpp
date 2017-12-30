@@ -2,6 +2,64 @@
 
 using namespace DeCANstructor;
 
+uint16_t DCOptions::fade_out_time_ms = 3000;
+
+void DCRenderTimer::Notify()
+{
+  auto& local_grid = wxGetApp().frame->active_grid;
+  float ros_now_ms = ros::Time::now().toSec() * 1000.0;
+  std::vector<CanMsgDetail> local_msgs;
+
+  wxGetApp().rcvd_msgs_mut.lock();
+
+  for (auto it = wxGetApp().rcvd_msgs.begin(); it != wxGetApp().rcvd_msgs.end(); it++)
+  {
+    bool needs_update = false;
+
+    for (auto byte_it = it->second->last_updated.begin(); byte_it != it->second->last_updated.end(); byte_it++)
+    {
+      if (ros_now_ms - *byte_it < DCOptions::fade_out_time_ms)
+        needs_update = true;
+    }
+
+    if (needs_update)
+    {
+      CanMsgDetail cmd_copy(*(it->second));
+      local_msgs.push_back(cmd_copy);
+    }
+  }
+
+  wxGetApp().rcvd_msgs_mut.unlock();
+
+  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
+  {
+    for (uint8_t i = 0; i < it->bytes.size(); i++)
+    {
+      float time_diff = (ros_now_ms - it->last_updated[i]);
+
+      if (time_diff < DCOptions::fade_out_time_ms)
+      {
+        wxColour cell_color;
+        float norm_time_interval = time_diff / (float)(DCOptions::fade_out_time_ms - 20);
+        norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
+
+        if (norm_time_interval < 0.5)
+        {
+          float green = (norm_time_interval * 2.0) * 255.0;
+          cell_color.Set(255, (unsigned char)green, 0);
+        }
+        else
+        {
+          float red_green = 255.0 - (((norm_time_interval - 0.5) * 2.0) * 255.0);
+          cell_color.Set(red_green, red_green, 0);
+        }
+
+        local_grid->SetCellBackgroundColour(it->table_index, i + 1, cell_color);
+      }
+    }
+  }
+}
+
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
@@ -108,6 +166,10 @@ DCFrame::DCFrame(const wxString& title,
   SetSizerAndFit(main_sizer);
 
   Connect(wxID_ANY, wxEVT_CMD_UPDATE_GRID, wxThreadEventHandler(DCFrame::OnGridUpdate), NULL, this);
+
+  // Start the render update timer with a 10ms interval.
+  render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
+  render_timer->Start(10);
 }
 
 void DCFrame::OnExit(wxCommandEvent& event)

@@ -19,11 +19,6 @@ namespace DeCANstructor
 {
   wxDECLARE_EVENT(wxEVT_CMD_UPDATE_GRID, wxThreadEvent);
 
-  enum
-  {
-    ID_Hello = 1
-  };
-
   struct CanMsgDetail
   {
     std::vector<uint8_t> bytes;
@@ -31,6 +26,19 @@ namespace DeCANstructor
     float time_rcvd;
     float time_last_rcvd;
     int table_index;
+  };
+
+  class DCOptions
+  {
+    public:
+      static uint16_t fade_out_time_ms;
+  };
+
+  class DCRenderTimer :
+    public wxTimer
+  {
+    public:
+      void Notify();
   };
 
   class DCFrame :
@@ -43,6 +51,7 @@ namespace DeCANstructor
 
       std::shared_ptr<wxGrid> active_grid;
       std::shared_ptr<wxCheckListBox> selector_box;
+      std::shared_ptr<DCRenderTimer> render_timer;
 
     private:
       void OnExit(wxCommandEvent& event);
