@@ -3,11 +3,12 @@
 using namespace DeCANstructor;
 
 uint16_t DCOptions::fade_out_time_ms = 3000;
+ros::Time DCOptions::one_day_ago = ros::Time();
 
 void DCRenderTimer::Notify()
 {
   auto& local_grid = wxGetApp().frame->active_grid;
-  float ros_now_ms = ros::Time::now().toSec() * 1000.0;
+  uint64_t ros_now_ms = (ros::Time::now() - DCOptions::one_day_ago).toNSec() / 1000000;
   std::vector<CanMsgDetail> local_msgs;
 
   wxGetApp().rcvd_msgs_mut.lock();
@@ -16,9 +17,9 @@ void DCRenderTimer::Notify()
   {
     bool needs_update = false;
 
-    for (auto byte_it = it->second->last_updated.begin(); byte_it != it->second->last_updated.end(); byte_it++)
+    for (auto byte_it = it->second->last_updated_ms.begin(); byte_it != it->second->last_updated_ms.end(); byte_it++)
     {
-      if (ros_now_ms - *byte_it < DCOptions::fade_out_time_ms)
+      if (ros_now_ms - *(byte_it) < DCOptions::fade_out_time_ms)
         needs_update = true;
     }
 
@@ -35,26 +36,30 @@ void DCRenderTimer::Notify()
   {
     for (uint8_t i = 0; i < it->bytes.size(); i++)
     {
-      float time_diff = (ros_now_ms - it->last_updated[i]);
+      uint64_t time_diff = (ros_now_ms - it->last_updated_ms[i]);
 
       if (time_diff < DCOptions::fade_out_time_ms)
       {
         wxColour cell_color;
+        wxColour text_color;
         float norm_time_interval = time_diff / (float)(DCOptions::fade_out_time_ms - 20);
         norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
+        uint8_t text_fade = (uint8_t)((1.0 - norm_time_interval) * 255.0);
+        text_color.Set(text_fade, text_fade, text_fade);
 
         if (norm_time_interval < 0.5)
         {
-          float green = (norm_time_interval * 2.0) * 255.0;
-          cell_color.Set(255, (unsigned char)green, 0);
+          uint8_t green = (uint8_t)((norm_time_interval * 2.0) * 255.0);
+          cell_color.Set(255, green, 0);
         }
         else
         {
-          float red_green = 255.0 - (((norm_time_interval - 0.5) * 2.0) * 255.0);
-          cell_color.Set(red_green, red_green, 0);
+          uint8_t blue = (uint8_t)(((norm_time_interval - 0.5) * 2.0) * 255.0);
+          cell_color.Set(255, 255, blue);
         }
 
         local_grid->SetCellBackgroundColour(it->table_index, i + 1, cell_color);
+        local_grid->SetCellTextColour(it->table_index, i + 1, text_color);
       }
     }
   }
@@ -98,7 +103,7 @@ DCFrame::DCFrame(const wxString& title,
   main_flags.Expand().Align(wxALIGN_TOP);
 
   // Create the main grid
-  active_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(510, 350)));
+  active_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 350)));
 
   // TODO: Automatically resize grid columns based on available space on window resize.
 
@@ -123,14 +128,16 @@ DCFrame::DCFrame(const wxString& title,
   active_grid->SetColLabelValue(9, "Last Rcvd (ms)");
 
   active_grid->SetDefaultColSize(40);
-  active_grid->SetColSize(0, 50);
-  active_grid->SetColSize(9, 95);
+  active_grid->SetColSize(0, 100);
+  active_grid->SetColSize(9, 105);
   active_grid->SetColMinimalAcceptableWidth(40);
-  active_grid->SetColMinimalWidth(0, 50);
-  active_grid->SetColMinimalWidth(9, 95);
+  active_grid->SetColMinimalWidth(0, 100);
+  active_grid->SetColMinimalWidth(9, 105);
+
+  active_grid->SetColFormatNumber(9);
 
   wxGridCellAttr* id_attr = new wxGridCellAttr();
-  id_attr->SetAlignment(wxALIGN_RIGHT, wxALIGN_CENTER);
+  id_attr->SetAlignment(wxALIGN_LEFT, wxALIGN_CENTER);
 
   active_grid->SetColAttr(0, id_attr);
 
@@ -141,8 +148,6 @@ DCFrame::DCFrame(const wxString& title,
 
     active_grid->SetColAttr(i, byte_attr);
   }
-
-  active_grid->SetColFormatFloat(9);
 
   main_sizer->Add(active_grid.get(), main_flags);
 
@@ -200,7 +205,7 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
       active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
     }
 
-    active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%.2f"), 0.00));
+    //active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%llu"), 0));
   }
   else
   {
@@ -216,9 +221,9 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
       }
     }
 
-    float time_diff = found_msg->time_rcvd - found_msg->time_last_rcvd;
+    uint64_t time_diff = found_msg->time_rcvd_ms - found_msg->time_last_rcvd_ms;
 
-    active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%.2f"), time_diff));
+    //active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%llu"), time_diff));
   }
 }
 
@@ -229,6 +234,7 @@ DCRosNode::DCRosNode()
   node_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle);
   private_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle("~"));
   spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
+  DCOptions::one_day_ago = ros::Time::now() - ros::Duration(60 * 60 * 24);
 
   can_sub = node_handle->subscribe("can_in", 100, &DCRosNode::CanCallback, this);
   
@@ -241,7 +247,8 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
 
   auto& msgs_local = wxGetApp().rcvd_msgs;
   auto found_msg = msgs_local.find(msg->id);
-  float header_ms = msg->header.stamp.toSec() * 1000.0;
+  // Do the following to get reasonable numbers to play with.
+  uint64_t header_ms = (msg->header.stamp - DCOptions::one_day_ago).toNSec() / 1000000;
 
   if (found_msg != msgs_local.end())
   {
@@ -251,12 +258,12 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
       if (msg->data[i] != found_msg->second->bytes[i])
       {
         found_msg->second->bytes[i] = msg->data[i];
-        found_msg->second->last_updated[i] = header_ms;
+        found_msg->second->last_updated_ms[i] = header_ms;
       }
     }
 
-    found_msg->second->time_last_rcvd = found_msg->second->time_rcvd;
-    found_msg->second->time_rcvd = header_ms;
+    found_msg->second->time_last_rcvd_ms = found_msg->second->time_rcvd_ms;
+    found_msg->second->time_rcvd_ms = header_ms;
   }
   else
   {
@@ -267,11 +274,11 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
     for (uint8_t i = 0; i < msg->data.size(); i++)
     {
       new_msg->bytes.push_back(msg->data[i]);
-      new_msg->last_updated.push_back(header_ms);
+      new_msg->last_updated_ms.push_back(header_ms);
     }
 
-    new_msg->time_rcvd = header_ms;
-    new_msg->time_last_rcvd = 0.0;
+    new_msg->time_rcvd_ms = header_ms;
+    new_msg->time_last_rcvd_ms = 0;
     msgs_local.insert(std::make_pair(msg->id, new_msg));
   }
 

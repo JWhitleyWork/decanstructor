@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="decanstructor" type="decanstructor_node" name="decanstructor">
+    <remap from="can_in" to="can_tx" />
+  </node>
+</launch>

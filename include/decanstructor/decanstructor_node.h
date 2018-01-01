@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <mutex>
 #include <unordered_map>
+#include <iomanip>
 
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
@@ -22,9 +23,9 @@ namespace DeCANstructor
   struct CanMsgDetail
   {
     std::vector<uint8_t> bytes;
-    std::vector<float> last_updated;
-    float time_rcvd;
-    float time_last_rcvd;
+    std::vector<uint64_t> last_updated_ms;
+    uint64_t time_rcvd_ms;
+    uint64_t time_last_rcvd_ms;
     int table_index;
   };
 
@@ -32,6 +33,7 @@ namespace DeCANstructor
   {
     public:
       static uint16_t fade_out_time_ms;
+      static ros::Time one_day_ago;
   };
 
   class DCRenderTimer :
