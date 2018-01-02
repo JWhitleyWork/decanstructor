@@ -9,59 +9,55 @@ void DCRenderTimer::Notify()
 {
   auto& local_grid = wxGetApp().frame->active_grid;
   uint64_t ros_now_ms = (ros::Time::now() - DCOptions::one_day_ago).toNSec() / 1000000;
-  std::vector<CanMsgDetail> local_msgs;
+  std::vector<CellUpdate> cells_to_update;
 
   wxGetApp().rcvd_msgs_mut.lock();
 
   for (auto it = wxGetApp().rcvd_msgs.begin(); it != wxGetApp().rcvd_msgs.end(); it++)
   {
-    bool needs_update = false;
-
-    for (auto byte_it = it->second->last_updated_ms.begin(); byte_it != it->second->last_updated_ms.end(); byte_it++)
+    for (uint8_t i = 0; i < it->second->last_updated_ms.size(); i++) 
     {
-      if (ros_now_ms - *(byte_it) < DCOptions::fade_out_time_ms)
-        needs_update = true;
+      uint64_t time_diff = ros_now_ms - it->second->last_updated_ms[i];
+
+      if (time_diff < DCOptions::fade_out_time_ms)
+      {
+        CellUpdate cu;
+        cu.row = it->second->table_index;
+        cu.col = i + 1;
+        cu.time_diff = time_diff;
+        cells_to_update.push_back(cu);
+      }
     }
 
-    if (needs_update)
-    {
-      CanMsgDetail cmd_copy(*(it->second));
-      local_msgs.push_back(cmd_copy);
-    }
+    if ((it->second->table_index > -1) &&
+        (ros_now_ms - it->second->time_rcvd_ms) < DCOptions::fade_out_time_ms)
+      local_grid->SetCellValue(it->second->table_index, 9, wxString::Format(wxT("%u"), it->second->avg_rate));
   }
 
   wxGetApp().rcvd_msgs_mut.unlock();
 
-  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
+  for (auto it = cells_to_update.begin(); it != cells_to_update.end(); it++)
   {
-    for (uint8_t i = 0; i < it->bytes.size(); i++)
+    wxColour cell_color;
+    wxColour text_color;
+    float norm_time_interval = it->time_diff / (float)(DCOptions::fade_out_time_ms - 100);
+    norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
+    uint8_t text_fade = (uint8_t)((1.0 - norm_time_interval) * 255.0);
+    text_color.Set(text_fade, text_fade, text_fade);
+
+    if (norm_time_interval < 0.5)
     {
-      uint64_t time_diff = (ros_now_ms - it->last_updated_ms[i]);
-
-      if (time_diff < DCOptions::fade_out_time_ms)
-      {
-        wxColour cell_color;
-        wxColour text_color;
-        float norm_time_interval = time_diff / (float)(DCOptions::fade_out_time_ms - 20);
-        norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
-        uint8_t text_fade = (uint8_t)((1.0 - norm_time_interval) * 255.0);
-        text_color.Set(text_fade, text_fade, text_fade);
-
-        if (norm_time_interval < 0.5)
-        {
-          uint8_t green = (uint8_t)((norm_time_interval * 2.0) * 255.0);
-          cell_color.Set(255, green, 0);
-        }
-        else
-        {
-          uint8_t blue = (uint8_t)(((norm_time_interval - 0.5) * 2.0) * 255.0);
-          cell_color.Set(255, 255, blue);
-        }
-
-        local_grid->SetCellBackgroundColour(it->table_index, i + 1, cell_color);
-        local_grid->SetCellTextColour(it->table_index, i + 1, text_color);
-      }
+      uint8_t green = (uint8_t)((norm_time_interval * 2.0) * 255.0);
+      cell_color.Set(255, green, 0);
     }
+    else
+    {
+      uint8_t blue = (uint8_t)(((norm_time_interval - 0.5) * 2.0) * 255.0);
+      cell_color.Set(255, 255, blue);
+    }
+
+    local_grid->SetCellBackgroundColour(it->row, it->col, cell_color);
+    local_grid->SetCellTextColour(it->row, it->col, text_color);
   }
 }
 
@@ -125,7 +121,7 @@ DCFrame::DCFrame(const wxString& title,
   active_grid->SetColLabelValue(6, "5");
   active_grid->SetColLabelValue(7, "6");
   active_grid->SetColLabelValue(8, "7");
-  active_grid->SetColLabelValue(9, "Last Rcvd (ms)");
+  active_grid->SetColLabelValue(9, "Avg Rate (ms)");
 
   active_grid->SetDefaultColSize(40);
   active_grid->SetColSize(0, 100);
@@ -174,7 +170,7 @@ DCFrame::DCFrame(const wxString& title,
 
   // Start the render update timer with a 10ms interval.
   render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
-  render_timer->Start(10);
+  render_timer->Start(100);
 }
 
 void DCFrame::OnExit(wxCommandEvent& event)
@@ -205,25 +201,31 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
       active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
     }
 
-    //active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%llu"), 0));
+    active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%u"), 0));
   }
   else
   {
     // Message in grid
     for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
     {
-      wxString formatted_byte = wxString::Format("%X", found_msg->bytes[i]);
-      wxString current_byte = active_grid->GetCellValue(found_msg->table_index, i + 1);
-
-      if (formatted_byte != current_byte)
+      if (found_msg->bytes[i] != found_msg->last_bytes[i])
       {
         active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
       }
     }
 
     uint64_t time_diff = found_msg->time_rcvd_ms - found_msg->time_last_rcvd_ms;
-
-    //active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%llu"), time_diff));
+    
+    // The new time difference should be
+    // less than 1 minute (to be safe)
+    if (time_diff < 60000)
+    {
+      // Make sure we don't have an average already
+      if (found_msg->avg_rate == 0)
+        found_msg->avg_rate = (unsigned int)time_diff;
+      else
+        found_msg->avg_rate = (found_msg->avg_rate + (unsigned int)time_diff) / 2;
+    }
   }
 }
 
@@ -241,6 +243,12 @@ DCRosNode::DCRosNode()
   spinner->start();
 }
 
+DCRosNode::~DCRosNode()
+{
+  spinner->stop();
+  ros::shutdown();
+}
+
 void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
 {
   std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
@@ -253,6 +261,9 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
   if (found_msg != msgs_local.end())
   {
     // The message has already been received.
+    // Store the old bytes for later comparison.
+    std::copy(found_msg->second->bytes.begin(), found_msg->second->bytes.end(), found_msg->second->last_bytes.begin());
+
     for (uint8_t i = 0; i < msg->data.size(); i++)
     {
       if (msg->data[i] != found_msg->second->bytes[i])
@@ -274,6 +285,7 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
     for (uint8_t i = 0; i < msg->data.size(); i++)
     {
       new_msg->bytes.push_back(msg->data[i]);
+      new_msg->last_bytes.push_back(msg->data[i]);
       new_msg->last_updated_ms.push_back(header_ms);
     }
 

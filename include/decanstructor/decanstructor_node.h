@@ -23,10 +23,19 @@ namespace DeCANstructor
   struct CanMsgDetail
   {
     std::vector<uint8_t> bytes;
+    std::vector<uint8_t> last_bytes;
     std::vector<uint64_t> last_updated_ms;
-    uint64_t time_rcvd_ms;
-    uint64_t time_last_rcvd_ms;
+    uint64_t time_rcvd_ms = 0;
+    uint64_t time_last_rcvd_ms = 0;
+    unsigned int avg_rate = 0;
     int table_index;
+  };
+
+  struct CellUpdate
+  {
+    int row;
+    int col;
+    uint64_t time_diff;
   };
 
   class DCOptions
@@ -67,6 +76,7 @@ namespace DeCANstructor
   {
     public:
       DCRosNode();
+      ~DCRosNode();
 
       void CanCallback(const can_msgs::Frame::ConstPtr& msg);
 
