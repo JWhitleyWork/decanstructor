@@ -19,7 +19,7 @@ void DCRenderTimer::Notify()
     {
       uint64_t time_diff = ros_now_ms - it->second->last_updated_ms[i];
 
-      if (time_diff < DCOptions::fade_out_time_ms && local_grid->IsRowShown(it->second->grid_index))
+      if (time_diff < DCOptions::fade_out_time_ms && !(it->second->hidden))
       {
         CellUpdate cu;
         cu.row = it->second->grid_index;
