@@ -60,14 +60,14 @@ namespace DeCANstructor
               const wxPoint& pos,
               const wxSize& size);
 
-      std::shared_ptr<wxGrid> active_grid;
+      std::shared_ptr<wxGrid> main_grid;
       std::shared_ptr<wxCheckListBox> selector_box;
       std::shared_ptr<DCRenderTimer> render_timer;
 
     private:
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
-      void OnGridUpdate(wxThreadEvent& event);
+      void OnMainGridUpdate(wxThreadEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };

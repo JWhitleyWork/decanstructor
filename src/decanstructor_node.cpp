@@ -7,7 +7,7 @@ ros::Time DCOptions::one_day_ago = ros::Time();
 
 void DCRenderTimer::Notify()
 {
-  auto& local_grid = wxGetApp().frame->active_grid;
+  auto& local_grid = wxGetApp().frame->main_grid;
   uint64_t ros_now_ms = (ros::Time::now() - DCOptions::one_day_ago).toNSec() / 1000000;
   std::vector<CellUpdate> cells_to_update;
 
@@ -99,53 +99,53 @@ DCFrame::DCFrame(const wxString& title,
   main_flags.Expand().Align(wxALIGN_TOP);
 
   // Create the main grid
-  active_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 350)));
+  main_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 350)));
 
   // TODO: Automatically resize grid columns based on available space on window resize.
 
-  active_grid->CreateGrid(0, 10);
-  active_grid->EnableEditing(false);
-  active_grid->DisableDragColSize();
-  active_grid->DisableDragRowSize();
-  active_grid->DisableDragGridSize();
-  active_grid->SetSelectionMode(wxGrid::wxGridSelectRowsOrColumns);
-  active_grid->SetColLabelSize(wxGRID_AUTOSIZE);
-  active_grid->SetRowLabelSize(40);
+  main_grid->CreateGrid(0, 10);
+  main_grid->EnableEditing(false);
+  main_grid->DisableDragColSize();
+  main_grid->DisableDragRowSize();
+  main_grid->DisableDragGridSize();
+  main_grid->SetSelectionMode(wxGrid::wxGridSelectRowsOrColumns);
+  main_grid->SetColLabelSize(wxGRID_AUTOSIZE);
+  main_grid->SetRowLabelSize(40);
 
-  active_grid->SetColLabelValue(0, "ID");
-  active_grid->SetColLabelValue(1, "0");
-  active_grid->SetColLabelValue(2, "1");
-  active_grid->SetColLabelValue(3, "2");
-  active_grid->SetColLabelValue(4, "3");
-  active_grid->SetColLabelValue(5, "4");
-  active_grid->SetColLabelValue(6, "5");
-  active_grid->SetColLabelValue(7, "6");
-  active_grid->SetColLabelValue(8, "7");
-  active_grid->SetColLabelValue(9, "Avg Rate (ms)");
+  main_grid->SetColLabelValue(0, "ID");
+  main_grid->SetColLabelValue(1, "0");
+  main_grid->SetColLabelValue(2, "1");
+  main_grid->SetColLabelValue(3, "2");
+  main_grid->SetColLabelValue(4, "3");
+  main_grid->SetColLabelValue(5, "4");
+  main_grid->SetColLabelValue(6, "5");
+  main_grid->SetColLabelValue(7, "6");
+  main_grid->SetColLabelValue(8, "7");
+  main_grid->SetColLabelValue(9, "Avg Rate (ms)");
 
-  active_grid->SetDefaultColSize(40);
-  active_grid->SetColSize(0, 100);
-  active_grid->SetColSize(9, 105);
-  active_grid->SetColMinimalAcceptableWidth(40);
-  active_grid->SetColMinimalWidth(0, 100);
-  active_grid->SetColMinimalWidth(9, 105);
+  main_grid->SetDefaultColSize(40);
+  main_grid->SetColSize(0, 100);
+  main_grid->SetColSize(9, 105);
+  main_grid->SetColMinimalAcceptableWidth(40);
+  main_grid->SetColMinimalWidth(0, 100);
+  main_grid->SetColMinimalWidth(9, 105);
 
-  active_grid->SetColFormatNumber(9);
+  main_grid->SetColFormatNumber(9);
 
   wxGridCellAttr* id_attr = new wxGridCellAttr();
   id_attr->SetAlignment(wxALIGN_LEFT, wxALIGN_CENTER);
 
-  active_grid->SetColAttr(0, id_attr);
+  main_grid->SetColAttr(0, id_attr);
 
   for (uint8_t i = 1; i < 9; i++)
   {
     wxGridCellAttr* byte_attr = new wxGridCellAttr();
     byte_attr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
 
-    active_grid->SetColAttr(i, byte_attr);
+    main_grid->SetColAttr(i, byte_attr);
   }
 
-  main_sizer->Add(active_grid.get(), main_flags);
+  main_sizer->Add(main_grid.get(), main_flags);
 
   // Create the CAN ID selection box
   selector_box = std::shared_ptr<wxCheckListBox>(new wxCheckListBox());
@@ -166,7 +166,7 @@ DCFrame::DCFrame(const wxString& title,
 
   SetSizerAndFit(main_sizer);
 
-  Connect(wxID_ANY, wxEVT_CMD_UPDATE_GRID, wxThreadEventHandler(DCFrame::OnGridUpdate), NULL, this);
+  Connect(wxID_ANY, wxEVT_CMD_UPDATE_GRID, wxThreadEventHandler(DCFrame::OnMainGridUpdate), NULL, this);
 
   // Start the render update timer with a 10ms interval.
   render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
@@ -183,7 +183,7 @@ void DCFrame::OnAbout(wxCommandEvent& event)
 	wxMessageBox("Copyright 2017 Joshua Whitley, All Rights Reserved", "About DeCANstructor", wxOK | wxICON_INFORMATION );
 }
 
-void DCFrame::OnGridUpdate(wxThreadEvent& event)
+void DCFrame::OnMainGridUpdate(wxThreadEvent& event)
 {
   std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
   auto& msgs_local = wxGetApp().rcvd_msgs;
@@ -192,16 +192,16 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
   if (found_msg->table_index < 0)
   {
     // Message not in grid
-    active_grid->AppendRows();
-    found_msg->table_index = active_grid->GetNumberRows() - 1;
-    active_grid->SetCellValue(found_msg->table_index, 0, wxString::Format(wxT("0x%X"), event.GetInt()));
+    main_grid->AppendRows();
+    found_msg->table_index = main_grid->GetNumberRows() - 1;
+    main_grid->SetCellValue(found_msg->table_index, 0, wxString::Format(wxT("0x%X"), event.GetInt()));
 
     for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
     {
-      active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
+      main_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
     }
 
-    active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%u"), 0));
+    main_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%u"), 0));
   }
   else
   {
@@ -210,7 +210,7 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
     {
       if (found_msg->bytes[i] != found_msg->last_bytes[i])
       {
-        active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
+        main_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
       }
     }
 
