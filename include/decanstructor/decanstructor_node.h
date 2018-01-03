@@ -29,7 +29,8 @@ namespace DeCANstructor
     uint64_t time_last_rcvd_ms = 0;
     unsigned int avg_rate = 0;
     bool hidden = false;
-    int table_index;
+    int grid_index;
+    int selector_index;
   };
 
   struct CellUpdate
@@ -69,6 +70,7 @@ namespace DeCANstructor
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
       void OnMsgsUpdate(wxThreadEvent& event);
+      void OnSelectorBoxTick(wxCommandEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -104,6 +106,7 @@ namespace DeCANstructor
 	wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
+    EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
 	wxEND_EVENT_TABLE()
 
   wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);

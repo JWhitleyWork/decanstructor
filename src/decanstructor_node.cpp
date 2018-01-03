@@ -19,19 +19,19 @@ void DCRenderTimer::Notify()
     {
       uint64_t time_diff = ros_now_ms - it->second->last_updated_ms[i];
 
-      if (time_diff < DCOptions::fade_out_time_ms)
+      if (time_diff < DCOptions::fade_out_time_ms && local_grid->IsRowShown(it->second->grid_index))
       {
         CellUpdate cu;
-        cu.row = it->second->table_index;
+        cu.row = it->second->grid_index;
         cu.col = i + 1;
         cu.time_diff = time_diff;
         cells_to_update.push_back(cu);
       }
     }
 
-    if ((it->second->table_index > -1) &&
+    if ((it->second->grid_index > -1) &&
         (ros_now_ms - it->second->time_rcvd_ms) < DCOptions::fade_out_time_ms)
-      local_grid->SetCellValue(it->second->table_index, 9, wxString::Format(wxT("%u"), it->second->avg_rate));
+      local_grid->SetCellValue(it->second->grid_index, 9, wxString::Format(wxT("%u"), it->second->avg_rate));
   }
 
   wxGetApp().rcvd_msgs_mut.unlock();
@@ -189,19 +189,23 @@ void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
   auto& msgs_local = wxGetApp().rcvd_msgs;
   std::shared_ptr<CanMsgDetail> found_msg = std::shared_ptr<CanMsgDetail>(msgs_local[event.GetInt()]);
 
-  if (found_msg->table_index < 0)
+  if (found_msg->grid_index < 0)
   {
-    // Message not in grid
+    // New message
+    // Add to grid
     main_grid->AppendRows();
-    found_msg->table_index = main_grid->GetNumberRows() - 1;
-    main_grid->SetCellValue(found_msg->table_index, 0, wxString::Format(wxT("0x%X"), event.GetInt()));
+    found_msg->grid_index = main_grid->GetNumberRows() - 1;
+    main_grid->SetCellValue(found_msg->grid_index, 0, wxString::Format(wxT("0x%03X"), event.GetInt()));
 
     for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
     {
-      main_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
+      main_grid->SetCellValue(found_msg->grid_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
     }
 
-    main_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%u"), 0));
+    main_grid->SetCellValue(found_msg->grid_index, 9, wxString::Format(wxT("%u"), 0));
+
+    // Add to selector box
+    found_msg->selector_index = selector_box->Append(wxString::Format(wxT("0x%03X"), event.GetInt()));
   }
   else
   {
@@ -210,7 +214,7 @@ void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
     {
       if (found_msg->bytes[i] != found_msg->last_bytes[i])
       {
-        main_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
+        main_grid->SetCellValue(found_msg->grid_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
       }
     }
 
@@ -227,6 +231,28 @@ void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
         found_msg->avg_rate = (found_msg->avg_rate + (unsigned int)time_diff) / 2;
     }
   }
+}
+
+void DCFrame::OnSelectorBoxTick(wxCommandEvent& event)
+{
+  auto& local_selector_box = wxGetApp().frame->selector_box;
+
+  wxGetApp().rcvd_msgs_mut.lock();
+
+  for (auto it = wxGetApp().rcvd_msgs.begin(); it != wxGetApp().rcvd_msgs.end(); it++)
+  {
+    if (it->second->selector_index == event.GetInt())
+    {
+      it->second->hidden = local_selector_box->IsChecked(event.GetInt());
+
+      if (it->second->hidden)
+        wxGetApp().frame->main_grid->HideRow(it->second->grid_index);
+      else
+        wxGetApp().frame->main_grid->ShowRow(it->second->grid_index);
+    }
+  }
+
+  wxGetApp().rcvd_msgs_mut.unlock();
 }
 
 DCRosNode::DCRosNode()
@@ -280,7 +306,7 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
   {
     // This is a new message.
     std::shared_ptr<CanMsgDetail> new_msg = std::shared_ptr<CanMsgDetail>(new CanMsgDetail);
-    new_msg->table_index = -1;
+    new_msg->grid_index = -1;
 
     for (uint8_t i = 0; i < msg->data.size(); i++)
     {
