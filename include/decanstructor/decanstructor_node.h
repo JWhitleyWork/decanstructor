@@ -40,6 +40,27 @@ namespace DeCANstructor
     uint64_t time_diff;
   };
 
+  // TODO: Finish implementing custom grid table.
+  class DCGridTable :
+    public wxGridTableBase
+  {
+    int GetNumberRows();
+    int GetNumberCols();
+    wxString GetValue(int row, int col);
+    void SetValue(int row, int col, const wxString &value);
+    void Clear();
+    bool InsertRows(size_t pos=0, size_t numRows=1);
+    bool AppendRows(size_t numRows=1);
+    bool DeleteRows(size_t pos=0, size_t numRows=1);
+    bool InsertCols(size_t pos=0, size_t numCols=1);
+    bool AppendCols(size_t numCols=1);
+    bool DeleteCols(size_t pos=0, size_t numCols=1);
+    void SetRowLabelValue(int row, const wxString &);
+    void SetColLabelValue(int col, const wxString &);
+    wxString GetRowLabelValue(int row);
+    wxString GetColLabelValue(int col);
+  };
+
   class DCOptions
   {
     public:
