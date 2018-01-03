@@ -198,7 +198,7 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
 
     for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
     {
-      active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
+      active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
     }
 
     active_grid->SetCellValue(found_msg->table_index, 9, wxString::Format(wxT("%u"), 0));
@@ -210,7 +210,7 @@ void DCFrame::OnGridUpdate(wxThreadEvent& event)
     {
       if (found_msg->bytes[i] != found_msg->last_bytes[i])
       {
-        active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%X"), found_msg->bytes[i]));
+        active_grid->SetCellValue(found_msg->table_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
       }
     }
 
