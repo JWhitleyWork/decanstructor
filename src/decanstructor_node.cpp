@@ -166,7 +166,7 @@ DCFrame::DCFrame(const wxString& title,
 
   SetSizerAndFit(main_sizer);
 
-  Connect(wxID_ANY, wxEVT_CMD_UPDATE_GRID, wxThreadEventHandler(DCFrame::OnMainGridUpdate), NULL, this);
+  Connect(wxID_ANY, wxEVT_CMD_UPDATE_MSGS, wxThreadEventHandler(DCFrame::OnMsgsUpdate), NULL, this);
 
   // Start the render update timer with a 10ms interval.
   render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
@@ -183,7 +183,7 @@ void DCFrame::OnAbout(wxCommandEvent& event)
 	wxMessageBox("Copyright 2017 Joshua Whitley, All Rights Reserved", "About DeCANstructor", wxOK | wxICON_INFORMATION );
 }
 
-void DCFrame::OnMainGridUpdate(wxThreadEvent& event)
+void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
 {
   std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
   auto& msgs_local = wxGetApp().rcvd_msgs;
@@ -294,7 +294,7 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
     msgs_local.insert(std::make_pair(msg->id, new_msg));
   }
 
-  wxThreadEvent evt(wxEVT_CMD_UPDATE_GRID);
+  wxThreadEvent evt(wxEVT_CMD_UPDATE_MSGS);
   evt.SetInt(msg->id);
   wxGetApp().frame->GetEventHandler()->QueueEvent(evt.Clone());
 }

@@ -18,7 +18,7 @@
 
 namespace DeCANstructor
 {
-  wxDECLARE_EVENT(wxEVT_CMD_UPDATE_GRID, wxThreadEvent);
+  wxDECLARE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
 
   struct CanMsgDetail
   {
@@ -28,6 +28,7 @@ namespace DeCANstructor
     uint64_t time_rcvd_ms = 0;
     uint64_t time_last_rcvd_ms = 0;
     unsigned int avg_rate = 0;
+    bool hidden = false;
     int table_index;
   };
 
@@ -67,7 +68,7 @@ namespace DeCANstructor
     private:
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
-      void OnMainGridUpdate(wxThreadEvent& event);
+      void OnMsgsUpdate(wxThreadEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -105,7 +106,7 @@ namespace DeCANstructor
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
 	wxEND_EVENT_TABLE()
 
-  wxDEFINE_EVENT(wxEVT_CMD_UPDATE_GRID, wxThreadEvent);
+  wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
 }
 
 wxIMPLEMENT_APP(DeCANstructor::DCNode);
