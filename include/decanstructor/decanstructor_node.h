@@ -20,6 +20,12 @@ namespace DeCANstructor
 {
   wxDECLARE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
 
+  enum
+  {
+    ID_BTN_UNCHECK_ALL = 1,
+    ID_BTN_CHECK_ALL
+  };
+
   struct CanMsgDetail
   {
     std::vector<uint8_t> bytes;
@@ -92,6 +98,8 @@ namespace DeCANstructor
       void OnAbout(wxCommandEvent& event);
       void OnMsgsUpdate(wxThreadEvent& event);
       void OnSelectorBoxTick(wxCommandEvent& event);
+      void OnUncheckAll(wxCommandEvent& event);
+      void OnCheckAll(wxCommandEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -128,6 +136,8 @@ namespace DeCANstructor
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
     EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
+    EVT_BUTTON(ID_BTN_UNCHECK_ALL, DCFrame::OnUncheckAll)
+    EVT_BUTTON(ID_BTN_CHECK_ALL, DCFrame::OnCheckAll)
 	wxEND_EVENT_TABLE()
 
   wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);

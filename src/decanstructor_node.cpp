@@ -86,20 +86,29 @@ DCFrame::DCFrame(const wxString& title,
   CreateStatusBar();
   SetStatusText("Welcome to DeCANstructor.");
 
-  // Create the sizer for the sub-widgets
+  // Create the sizers for the sub-widgets
   wxFlexGridSizer* main_sizer = new wxFlexGridSizer(4, 5, 5);
+  wxBoxSizer* right_sizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer* chkbx_cntrl_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-  main_sizer->AddSpacer(5);
-  main_sizer->AddSpacer(5);
-  main_sizer->AddSpacer(5);
-  main_sizer->AddSpacer(5);
-  main_sizer->AddSpacer(5);
-
+  // Create basic flags
+  wxSizerFlags expand_flag;
   wxSizerFlags main_flags;
+
+  expand_flag.Expand();
   main_flags.Expand().Align(wxALIGN_TOP);
 
+  // Main Sizer - 1st Row
+  main_sizer->AddSpacer(5);
+  main_sizer->AddSpacer(5);
+  main_sizer->AddSpacer(5);
+
+  // Main Sizer - 2nd Row
+  main_sizer->AddSpacer(5);
+  main_sizer->AddSpacer(5);
+
   // Create the main grid
-  main_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 350)));
+  main_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 250)));
 
   // TODO: Automatically resize grid columns based on available space on window resize.
 
@@ -145,23 +154,39 @@ DCFrame::DCFrame(const wxString& title,
     main_grid->SetColAttr(i, byte_attr);
   }
 
-  main_sizer->Add(main_grid.get(), main_flags);
+  main_sizer->Add(main_grid.get(), main_flags.Proportion(1));
 
-  // Create the CAN ID selection box
+  // Create the Control Buttons for the CAN ID Selection Box
+  wxButton* uncheck_all_btn = new wxButton();
+  wxButton* check_all_btn = new wxButton();
+
+  uncheck_all_btn->Create(this, ID_BTN_UNCHECK_ALL, "Uncheck All");
+  check_all_btn->Create(this, ID_BTN_CHECK_ALL, "Check All");
+
+  chkbx_cntrl_sizer->Add(uncheck_all_btn, expand_flag.Proportion(1));
+  chkbx_cntrl_sizer->AddSpacer(5);
+  chkbx_cntrl_sizer->Add(check_all_btn, expand_flag.Proportion(1));
+
+  right_sizer->Add(chkbx_cntrl_sizer, expand_flag.Proportion(0));
+  right_sizer->AddSpacer(5);
+
+  // Create the CAN ID Selection Box
   selector_box = std::shared_ptr<wxCheckListBox>(new wxCheckListBox());
-  
   selector_box->Create(this, -1, wxPoint(0, 0), wxSize(200, 350));
 
-  main_sizer->Add(selector_box.get(), main_flags);
+  right_sizer->Add(selector_box.get(), main_flags.Proportion(1));
+
+  main_sizer->Add(right_sizer, main_flags.Right().Proportion(0));
 
   main_sizer->AddSpacer(5);
   main_sizer->AddSpacer(5);
+
+  // Main Sizer - 3rd Row
   main_sizer->AddSpacer(5);
   main_sizer->AddSpacer(5);
   main_sizer->AddSpacer(5);
 
   main_sizer->AddGrowableCol(1, 3);
-  main_sizer->AddGrowableCol(2, 1);
   main_sizer->AddGrowableRow(1);
 
   SetSizerAndFit(main_sizer);
@@ -206,6 +231,7 @@ void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
 
     // Add to selector box
     found_msg->selector_index = selector_box->Append(wxString::Format(wxT("0x%03X"), event.GetInt()));
+    selector_box->Check(found_msg->selector_index);
   }
   else
   {
@@ -243,7 +269,7 @@ void DCFrame::OnSelectorBoxTick(wxCommandEvent& event)
   {
     if (it->second->selector_index == event.GetInt())
     {
-      it->second->hidden = local_selector_box->IsChecked(event.GetInt());
+      it->second->hidden = !local_selector_box->IsChecked(event.GetInt());
 
       if (it->second->hidden)
         wxGetApp().frame->main_grid->HideRow(it->second->grid_index);
@@ -253,6 +279,32 @@ void DCFrame::OnSelectorBoxTick(wxCommandEvent& event)
   }
 
   wxGetApp().rcvd_msgs_mut.unlock();
+}
+
+void DCFrame::OnUncheckAll(wxCommandEvent& event)
+{
+  std::lock_guard<std::mutex> uncheck_mut(wxGetApp().rcvd_msgs_mut);
+  auto& local_msgs = wxGetApp().rcvd_msgs;
+
+  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
+  {
+    it->second->hidden = true;
+    wxGetApp().frame->main_grid->HideRow(it->second->grid_index);
+    wxGetApp().frame->selector_box->Check(it->second->selector_index, false);
+  }
+}
+
+void DCFrame::OnCheckAll(wxCommandEvent& event)
+{
+  std::lock_guard<std::mutex> check_mut(wxGetApp().rcvd_msgs_mut);
+  auto& local_msgs = wxGetApp().rcvd_msgs;
+
+  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
+  {
+    it->second->hidden = false;
+    wxGetApp().frame->main_grid->ShowRow(it->second->grid_index);
+    wxGetApp().frame->selector_box->Check(it->second->selector_index, true);
+  }
 }
 
 DCRosNode::DCRosNode()
