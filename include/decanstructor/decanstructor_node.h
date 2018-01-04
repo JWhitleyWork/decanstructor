@@ -19,11 +19,19 @@
 namespace DeCANstructor
 {
   wxDECLARE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
+  wxDECLARE_EVENT(wxEVT_CMD_EVENT_PUBLISHED, wxThreadEvent);
 
   enum
   {
     ID_BTN_UNCHECK_ALL = 1,
-    ID_BTN_CHECK_ALL
+    ID_BTN_CHECK_ALL,
+    ID_BTN_PUBLISH_EVENT
+  };
+
+  enum EventMode
+  {
+    REAL_TIME,
+    PLAYBACK
   };
 
   struct CanMsgDetail
@@ -72,6 +80,7 @@ namespace DeCANstructor
     public:
       static uint16_t fade_out_time_ms;
       static ros::Time one_day_ago;
+      static EventMode event_mode;
   };
 
   class DCRenderTimer :
@@ -92,6 +101,8 @@ namespace DeCANstructor
       std::shared_ptr<wxGrid> main_grid;
       std::shared_ptr<wxCheckListBox> selector_box;
       std::shared_ptr<DCRenderTimer> render_timer;
+      std::shared_ptr<wxButton> pub_event_btn;
+      std::shared_ptr<wxStaticText> pub_event_txt;
 
     private:
       void OnExit(wxCommandEvent& event);
@@ -100,6 +111,8 @@ namespace DeCANstructor
       void OnSelectorBoxTick(wxCommandEvent& event);
       void OnUncheckAll(wxCommandEvent& event);
       void OnCheckAll(wxCommandEvent& event);
+      void OnPublishEvent(wxCommandEvent& event);
+      void OnEventPublished(wxThreadEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -138,9 +151,11 @@ namespace DeCANstructor
     EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
     EVT_BUTTON(ID_BTN_UNCHECK_ALL, DCFrame::OnUncheckAll)
     EVT_BUTTON(ID_BTN_CHECK_ALL, DCFrame::OnCheckAll)
+    EVT_BUTTON(ID_BTN_PUBLISH_EVENT, DCFrame::OnPublishEvent)
 	wxEND_EVENT_TABLE()
 
   wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
+  wxDEFINE_EVENT(wxEVT_CMD_EVENT_PUBLISHED, wxThreadEvent);
 }
 
 wxIMPLEMENT_APP(DeCANstructor::DCNode);

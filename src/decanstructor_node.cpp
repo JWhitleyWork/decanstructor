@@ -4,6 +4,7 @@ using namespace DeCANstructor;
 
 uint16_t DCOptions::fade_out_time_ms = 3000;
 ros::Time DCOptions::one_day_ago = ros::Time();
+EventMode DCOptions::event_mode = REAL_TIME;
 
 void DCRenderTimer::Notify()
 {
@@ -90,8 +91,10 @@ DCFrame::DCFrame(const wxString& title,
   wxFlexGridSizer* main_sizer = new wxFlexGridSizer(4, 5, 5);
   wxBoxSizer* right_sizer = new wxBoxSizer(wxVERTICAL);
   wxBoxSizer* chkbx_cntrl_sizer = new wxBoxSizer(wxHORIZONTAL);
+  wxBoxSizer* event_sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "Events");
 
   // Create basic flags
+  wxSizerFlags no_flags;
   wxSizerFlags expand_flag;
   wxSizerFlags main_flags;
 
@@ -176,7 +179,27 @@ DCFrame::DCFrame(const wxString& title,
 
   right_sizer->Add(selector_box.get(), main_flags.Proportion(1));
 
-  main_sizer->Add(right_sizer, main_flags.Right().Proportion(0));
+  right_sizer->AddSpacer(5);
+
+  // Create the Event Control Box
+  wxPanel* event_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200, 50));
+
+  pub_event_btn = std::shared_ptr<wxButton>(new wxButton());
+  pub_event_txt = std::shared_ptr<wxStaticText>(new wxStaticText());
+
+  pub_event_btn->Create(event_panel, ID_BTN_PUBLISH_EVENT, "Publish Event", wxPoint(0, 0), wxSize(200, 50));
+  pub_event_txt->Create(event_panel, wxID_ANY, "");
+  pub_event_txt->SetLabelMarkup("<b><big>Event Published</big></b>");
+
+  pub_event_txt->CentreOnParent();
+
+  event_sizer->Add(event_panel);
+
+  pub_event_txt->Hide();
+
+  right_sizer->Add(event_sizer, expand_flag.Proportion(0));
+
+  main_sizer->Add(right_sizer, main_flags.Right());
 
   main_sizer->AddSpacer(5);
   main_sizer->AddSpacer(5);
@@ -192,6 +215,7 @@ DCFrame::DCFrame(const wxString& title,
   SetSizerAndFit(main_sizer);
 
   Connect(wxID_ANY, wxEVT_CMD_UPDATE_MSGS, wxThreadEventHandler(DCFrame::OnMsgsUpdate), NULL, this);
+  Connect(wxID_ANY, wxEVT_CMD_EVENT_PUBLISHED, wxThreadEventHandler(DCFrame::OnEventPublished), NULL, this);
 
   // Start the render update timer with a 10ms interval.
   render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
@@ -307,6 +331,14 @@ void DCFrame::OnCheckAll(wxCommandEvent& event)
   }
 }
 
+void DCFrame::OnPublishEvent(wxCommandEvent& event)
+{
+}
+
+void DCFrame::OnEventPublished(wxThreadEvent& event)
+{
+}
+
 DCRosNode::DCRosNode()
 {
   // ROS Init
@@ -315,6 +347,12 @@ DCRosNode::DCRosNode()
   private_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle("~"));
   spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
   DCOptions::one_day_ago = ros::Time::now() - ros::Duration(60 * 60 * 24);
+
+  // Wait for time to be valid
+  while (ros::Time::now().nsec == 0);
+
+  // TODO: Get initial event mode and hide an event control
+  // based on the mode.
 
   can_sub = node_handle->subscribe("can_in", 100, &DCRosNode::CanCallback, this);
   
