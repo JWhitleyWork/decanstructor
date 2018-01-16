@@ -220,10 +220,27 @@ DCFrame::DCFrame(const wxString& title,
   // Start the render update timer with a 10ms interval.
   render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
   render_timer->Start(100);
+
+  // The ROS stuff
+  ros::NodeHandle node_handle;
+  ros::NodeHandle private_handle("~");
+  ros::AsyncSpinner spinner(2);
+  DCOptions::one_day_ago = ros::Time::now() - ros::Duration(60 * 60 * 24);
+
+  // Wait for time to be valid
+  while (ros::Time::now().nsec == 0);
+
+  // TODO: Get initial event mode and hide an event control
+  // based on the mode.
+
+  can_sub = node_handle.subscribe("can_in", 100, &DCFrame::CanCallback, this);
+
+  spinner.start();
 }
 
 void DCFrame::OnExit(wxCommandEvent& event)
 {
+  ros::shutdown();
   Close(true);
 }
 
@@ -339,33 +356,7 @@ void DCFrame::OnEventPublished(wxThreadEvent& event)
 {
 }
 
-DCRosNode::DCRosNode()
-{
-  // ROS Init
-  ros::init(wxGetApp().argc, wxGetApp().argv, "DeCANstructor");
-  node_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle);
-  private_handle = std::unique_ptr<ros::NodeHandle>(new ros::NodeHandle("~"));
-  spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
-  DCOptions::one_day_ago = ros::Time::now() - ros::Duration(60 * 60 * 24);
-
-  // Wait for time to be valid
-  while (ros::Time::now().nsec == 0);
-
-  // TODO: Get initial event mode and hide an event control
-  // based on the mode.
-
-  can_sub = node_handle->subscribe("can_in", 100, &DCRosNode::CanCallback, this);
-  
-  spinner->start();
-}
-
-DCRosNode::~DCRosNode()
-{
-  spinner->stop();
-  ros::shutdown();
-}
-
-void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
+void DCFrame::CanCallback(const can_msgs::Frame::ConstPtr& msg)
 {
   std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
 
@@ -417,12 +408,12 @@ void DCRosNode::CanCallback(const can_msgs::Frame::ConstPtr& msg)
 
 bool DCNode::OnInit()
 {
+  // ROS Node init
+  ros::init(wxGetApp().argc, wxGetApp().argv, "DeCANstructor");
+
   // wxWidgets Init
   frame = new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340));
   frame->Show(true);
-
-  // ROS Node init
-  ros_node = std::unique_ptr<DCRosNode>(new DCRosNode);
 
   return true;
 }

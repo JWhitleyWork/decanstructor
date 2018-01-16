@@ -105,6 +105,9 @@ namespace DeCANstructor
       std::shared_ptr<wxStaticText> pub_event_txt;
 
     private:
+      ros::Subscriber can_sub;
+
+      void CanCallback(const can_msgs::Frame::ConstPtr& msg);
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
       void OnMsgsUpdate(wxThreadEvent& event);
@@ -117,21 +120,6 @@ namespace DeCANstructor
       wxDECLARE_EVENT_TABLE();
   };
 
-  class DCRosNode
-  {
-    public:
-      DCRosNode();
-      ~DCRosNode();
-
-      void CanCallback(const can_msgs::Frame::ConstPtr& msg);
-
-    private:
-      std::unique_ptr<ros::NodeHandle> node_handle;
-      std::unique_ptr<ros::NodeHandle> private_handle;
-      std::unique_ptr<ros::AsyncSpinner> spinner;
-      ros::Subscriber can_sub;
-  };
-
   class DCNode :
     public wxApp
   {
@@ -140,9 +128,6 @@ namespace DeCANstructor
       DCFrame* frame;
       std::unordered_map<uint32_t, std::shared_ptr<CanMsgDetail>> rcvd_msgs;
       std::mutex rcvd_msgs_mut;
-
-    private:
-      std::unique_ptr<DCRosNode> ros_node;
   };
 
 	wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)
