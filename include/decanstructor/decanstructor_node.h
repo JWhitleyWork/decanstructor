@@ -2,7 +2,7 @@
 #define DECANSTRUCTOR_NODE_H
 
 #include <common.h>
-#include <signal_analyzer.h>
+#include <message_analyzer.h>
 
 #include <can_msgs/Frame.h>
 #include <decanstructor/CanEvent.h>
@@ -13,7 +13,7 @@ namespace DeCANstructor
 
   enum
   {
-    ID_BTN_SIGNAL_ANALYZER = 1,
+    ID_BTN_MESSAGE_ANALYZER = 1,
     ID_BTN_UNCHECK_ALL,
     ID_BTN_CHECK_ALL,
     ID_BTN_PUBLISH_EVENT
@@ -90,7 +90,7 @@ namespace DeCANstructor
               const wxSize& size);
 
       std::unique_ptr<wxGrid> main_grid;
-      std::unique_ptr<wxButton> signal_analyzer_btn;
+      std::unique_ptr<wxButton> message_analyzer_btn;
       std::unique_ptr<wxCheckListBox> selector_box;
       std::unique_ptr<DCRenderTimer> render_timer;
       std::unique_ptr<wxPanel> event_panel;
@@ -112,7 +112,7 @@ namespace DeCANstructor
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
       void OnMsgsUpdate(wxThreadEvent& event);
-      void OnSignalAnalyzerClick(wxCommandEvent& event);
+      void OnMessageAnalyzerClick(wxCommandEvent& event);
       void OnSelectorBoxTick(wxCommandEvent& event);
       void OnUncheckAll(wxCommandEvent& event);
       void OnCheckAll(wxCommandEvent& event);
@@ -136,7 +136,7 @@ namespace DeCANstructor
 	wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
-    EVT_BUTTON(ID_BTN_SIGNAL_ANALYZER, DCFrame::OnSignalAnalyzerClick)
+    EVT_BUTTON(ID_BTN_MESSAGE_ANALYZER, DCFrame::OnMessageAnalyzerClick)
     EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
     EVT_BUTTON(ID_BTN_UNCHECK_ALL, DCFrame::OnUncheckAll)
     EVT_BUTTON(ID_BTN_CHECK_ALL, DCFrame::OnCheckAll)

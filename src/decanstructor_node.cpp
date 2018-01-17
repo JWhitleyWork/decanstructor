@@ -97,9 +97,9 @@ void DCRenderTimer::Notify()
     wxArrayInt selected_rows = wxGetApp().frame->main_grid->GetSelectedRows();
 
     if (selected_rows.GetCount() == 1)
-      wxGetApp().frame->signal_analyzer_btn->Enable(true);
+      wxGetApp().frame->message_analyzer_btn->Enable(true);
     else
-      wxGetApp().frame->signal_analyzer_btn->Enable(false);
+      wxGetApp().frame->message_analyzer_btn->Enable(false);
 
     wxGetApp().frame->new_grid_select = false;
   }
@@ -136,7 +136,7 @@ DCFrame::DCFrame(const wxString& title,
   // Create the sizers for the sub-widgets
   wxFlexGridSizer* main_sizer = new wxFlexGridSizer(4, 5, 5);
   wxBoxSizer* right_sizer = new wxBoxSizer(wxVERTICAL);
-  wxBoxSizer* signal_analyzer_sizer = new wxBoxSizer(wxHORIZONTAL);
+  wxBoxSizer* message_analyzer_sizer = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer* chkbx_cntrl_sizer = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer* event_sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "Events");
 
@@ -207,14 +207,14 @@ DCFrame::DCFrame(const wxString& title,
 
   main_sizer->Add(main_grid.get(), main_flags.Proportion(1));
 
-  // Create the Signal Analyzer button
-  signal_analyzer_btn = std::unique_ptr<wxButton>(new wxButton());
-  signal_analyzer_btn->Create(this, ID_BTN_SIGNAL_ANALYZER, "Analyze Signal");
-  signal_analyzer_btn->Enable(false); // Start disabled
+  // Create the Message Analyzer button
+  message_analyzer_btn = std::unique_ptr<wxButton>(new wxButton());
+  message_analyzer_btn->Create(this, ID_BTN_MESSAGE_ANALYZER, "Analyze Message");
+  message_analyzer_btn->Enable(false); // Start disabled
 
-  signal_analyzer_sizer->Add(signal_analyzer_btn.get(), expand_flag.Proportion(1));
+  message_analyzer_sizer->Add(message_analyzer_btn.get(), expand_flag.Proportion(1));
 
-  right_sizer->Add(signal_analyzer_sizer, expand_flag.Proportion(0));
+  right_sizer->Add(message_analyzer_sizer, expand_flag.Proportion(0));
   right_sizer->AddSpacer(5);
 
   // Create the Control Buttons for the CAN ID Selection Box
@@ -391,14 +391,14 @@ void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
   }
 }
 
-void DCFrame::OnSignalAnalyzerClick(wxCommandEvent& event)
+void DCFrame::OnMessageAnalyzerClick(wxCommandEvent& event)
 {
-  // Set up Signal Analyzer window
-  DCSignalAnalyzerFrame* sa_frame = new DCSignalAnalyzerFrame(this,
-                                                              "Signal Analyzer",
-                                                              wxPoint(100, 100),
-                                                              wxSize(250, 250));
-  sa_frame->Show(true);
+  // Set up Message Analyzer window
+  DCMessageAnalyzerFrame* ma_frame = new DCMessageAnalyzerFrame(this,
+                                                                "Message Analyzer",
+                                                                wxPoint(100, 100),
+                                                                wxSize(250, 250));
+  ma_frame->Show(true);
 }
 
 void DCFrame::OnSelectorBoxTick(wxCommandEvent& event)
