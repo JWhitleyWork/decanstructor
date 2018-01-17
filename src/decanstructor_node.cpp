@@ -196,8 +196,6 @@ DCFrame::DCFrame(const wxString& title,
 
   event_sizer->Add(event_panel);
 
-  pub_event_txt->Hide();
-
   right_sizer->Add(event_sizer, expand_flag.Proportion(0));
 
   main_sizer->Add(right_sizer, main_flags.Right());
@@ -213,8 +211,6 @@ DCFrame::DCFrame(const wxString& title,
   main_sizer->AddGrowableCol(1, 3);
   main_sizer->AddGrowableRow(1);
 
-  SetSizerAndFit(main_sizer);
-
   Connect(wxID_ANY, wxEVT_CMD_UPDATE_MSGS, wxThreadEventHandler(DCFrame::OnMsgsUpdate), NULL, this);
 
   // Start the render update timer with a 10ms interval.
@@ -224,7 +220,7 @@ DCFrame::DCFrame(const wxString& title,
   // The ROS stuff
   ros::NodeHandle node_handle;
   ros::NodeHandle private_handle("~");
-  ros::AsyncSpinner spinner(2);
+  spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
 
   private_handle.getParam("playback", in_playback_mode);
 
@@ -255,9 +251,17 @@ DCFrame::DCFrame(const wxString& title,
   {
     ROS_INFO("Entering playback mode...");
     event_sub = node_handle.subscribe("events", 20, &DCFrame::OnEventPublished, this);
+    pub_event_btn->Hide();
+  }
+  else
+  {
+    pub_event_txt->Hide();
   }
 
-  spinner.start();
+  spinner->start();
+
+  // We want this to happen last after playback mode takes effect.
+  SetSizerAndFit(main_sizer);
 }
 
 void DCFrame::OnExit(wxCommandEvent& event)

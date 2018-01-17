@@ -106,6 +106,7 @@ namespace DeCANstructor
       std::shared_ptr<wxStaticText> pub_event_txt;
 
     private:
+      std::unique_ptr<ros::AsyncSpinner> spinner;
       ros::Publisher event_pub;
       ros::Subscriber can_sub;
       ros::Subscriber event_sub;
