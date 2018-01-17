@@ -15,6 +15,7 @@
 
 #include <ros/ros.h>
 #include <can_msgs/Frame.h>
+#include <decanstructor/CanEvent.h>
 
 namespace DeCANstructor
 {
@@ -105,9 +106,12 @@ namespace DeCANstructor
       std::shared_ptr<wxStaticText> pub_event_txt;
 
     private:
+      ros::Publisher event_pub;
       ros::Subscriber can_sub;
+      ros::Subscriber event_sub;
+      bool in_playback_mode;
 
-      void CanCallback(const can_msgs::Frame::ConstPtr& msg);
+      void OnCanMsg(const can_msgs::Frame::ConstPtr& msg);
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
       void OnMsgsUpdate(wxThreadEvent& event);
@@ -115,7 +119,7 @@ namespace DeCANstructor
       void OnUncheckAll(wxCommandEvent& event);
       void OnCheckAll(wxCommandEvent& event);
       void OnPublishEvent(wxCommandEvent& event);
-      void OnEventPublished(wxThreadEvent& event);
+      void OnEventPublished(const decanstructor::CanEvent::ConstPtr& msg);
 
       wxDECLARE_EVENT_TABLE();
   };

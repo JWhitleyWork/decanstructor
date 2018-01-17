@@ -65,6 +65,7 @@ void DCRenderTimer::Notify()
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
+  in_playback_mode(false),
   wxFrame(NULL,
           wxID_ANY,
           title,
@@ -215,7 +216,6 @@ DCFrame::DCFrame(const wxString& title,
   SetSizerAndFit(main_sizer);
 
   Connect(wxID_ANY, wxEVT_CMD_UPDATE_MSGS, wxThreadEventHandler(DCFrame::OnMsgsUpdate), NULL, this);
-  Connect(wxID_ANY, wxEVT_CMD_EVENT_PUBLISHED, wxThreadEventHandler(DCFrame::OnEventPublished), NULL, this);
 
   // Start the render update timer with a 10ms interval.
   render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
@@ -225,15 +225,37 @@ DCFrame::DCFrame(const wxString& title,
   ros::NodeHandle node_handle;
   ros::NodeHandle private_handle("~");
   ros::AsyncSpinner spinner(2);
+
+  private_handle.getParam("playback", in_playback_mode);
+
+  if (in_playback_mode)
+  {
+    ROS_INFO("Waiting for playback to begin...");
+
+    while (ros::Time::now().nsec == 0 && ros::ok());
+
+    if (ros::Time::now().nsec == 0)
+    {
+      ROS_ERROR("Node shut down. No playback detected. Exiting...");
+      Close(true);
+      return;
+    }
+  }
+  else
+  {
+    while (ros::Time::now().nsec == 0);
+  }
+
   DCOptions::one_day_ago = ros::Time::now() - ros::Duration(60 * 60 * 24);
 
-  // Wait for time to be valid
-  while (ros::Time::now().nsec == 0);
+  event_pub = node_handle.advertise<decanstructor::CanEvent>("events", 20);
+  can_sub = node_handle.subscribe("can_in", 100, &DCFrame::OnCanMsg, this);
 
-  // TODO: Get initial event mode and hide an event control
-  // based on the mode.
-
-  can_sub = node_handle.subscribe("can_in", 100, &DCFrame::CanCallback, this);
+  if (in_playback_mode)
+  {
+    ROS_INFO("Entering playback mode...");
+    event_sub = node_handle.subscribe("events", 20, &DCFrame::OnEventPublished, this);
+  }
 
   spinner.start();
 }
@@ -350,13 +372,18 @@ void DCFrame::OnCheckAll(wxCommandEvent& event)
 
 void DCFrame::OnPublishEvent(wxCommandEvent& event)
 {
+  decanstructor::CanEvent event_msg;
+  event_msg.event_desc = "";
+  event_msg.header.stamp = ros::Time::now();
+
+  event_pub.publish(event_msg);
 }
 
-void DCFrame::OnEventPublished(wxThreadEvent& event)
+void DCFrame::OnEventPublished(const decanstructor::CanEvent::ConstPtr& msg)
 {
 }
 
-void DCFrame::CanCallback(const can_msgs::Frame::ConstPtr& msg)
+void DCFrame::OnCanMsg(const can_msgs::Frame::ConstPtr& msg)
 {
   std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
 
