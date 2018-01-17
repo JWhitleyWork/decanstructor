@@ -61,7 +61,7 @@ void DCRenderTimer::Notify()
     local_grid->SetCellTextColour(it->row, it->col, text_color);
   }
 
-  if (wxGetApp().frame->in_playback_mode)
+  if (DCOptions::event_mode == PLAYBACK)
   {
     std::lock_guard<std::mutex> event_mut(wxGetApp().frame->event_mut);
 
@@ -91,12 +91,23 @@ void DCRenderTimer::Notify()
       }
     }
   }
+
+  if (wxGetApp().frame->new_grid_select)
+  {
+    wxArrayInt selected_rows = wxGetApp().frame->main_grid->GetSelectedRows();
+
+    if (selected_rows.GetCount() == 1)
+      wxGetApp().frame->signal_analyzer_btn->Enable(true);
+    else
+      wxGetApp().frame->signal_analyzer_btn->Enable(false);
+
+    wxGetApp().frame->new_grid_select = false;
+  }
 }
 
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
-  in_playback_mode(false),
   got_new_event(false),
   most_recent_event_time(0),
   wxFrame(NULL,
@@ -105,6 +116,7 @@ DCFrame::DCFrame(const wxString& title,
           pos,
           size)
 {
+
   // Set up basic window properties
   wxMenu* menu_file = new wxMenu;
   menu_file->Append(wxID_EXIT);
@@ -124,6 +136,7 @@ DCFrame::DCFrame(const wxString& title,
   // Create the sizers for the sub-widgets
   wxFlexGridSizer* main_sizer = new wxFlexGridSizer(4, 5, 5);
   wxBoxSizer* right_sizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer* signal_analyzer_sizer = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer* chkbx_cntrl_sizer = new wxBoxSizer(wxHORIZONTAL);
   wxBoxSizer* event_sizer = new wxStaticBoxSizer(wxHORIZONTAL, this, "Events");
 
@@ -145,7 +158,7 @@ DCFrame::DCFrame(const wxString& title,
   main_sizer->AddSpacer(5);
 
   // Create the main grid
-  main_grid = std::shared_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 250)));
+  main_grid = std::unique_ptr<wxGrid>(new wxGrid(this, -1, wxPoint(0, 0), wxSize(600, 250)));
 
   // TODO: Automatically resize grid columns based on available space on window resize.
 
@@ -154,9 +167,10 @@ DCFrame::DCFrame(const wxString& title,
   main_grid->DisableDragColSize();
   main_grid->DisableDragRowSize();
   main_grid->DisableDragGridSize();
-  main_grid->SetSelectionMode(wxGrid::wxGridSelectRowsOrColumns);
+  main_grid->SetSelectionMode(wxGrid::wxGridSelectRows);
   main_grid->SetColLabelSize(wxGRID_AUTOSIZE);
   main_grid->SetRowLabelSize(40);
+  main_grid->SetSelectionBackground(wxColour(150, 150, 255));
 
   main_grid->SetColLabelValue(0, "ID");
   main_grid->SetColLabelValue(1, "0");
@@ -193,6 +207,16 @@ DCFrame::DCFrame(const wxString& title,
 
   main_sizer->Add(main_grid.get(), main_flags.Proportion(1));
 
+  // Create the Signal Analyzer button
+  signal_analyzer_btn = std::unique_ptr<wxButton>(new wxButton());
+  signal_analyzer_btn->Create(this, ID_BTN_SIGNAL_ANALYZER, "Analyze Signal");
+  signal_analyzer_btn->Enable(false); // Start disabled
+
+  signal_analyzer_sizer->Add(signal_analyzer_btn.get(), expand_flag.Proportion(1));
+
+  right_sizer->Add(signal_analyzer_sizer, expand_flag.Proportion(0));
+  right_sizer->AddSpacer(5);
+
   // Create the Control Buttons for the CAN ID Selection Box
   wxButton* uncheck_all_btn = new wxButton();
   wxButton* check_all_btn = new wxButton();
@@ -208,7 +232,7 @@ DCFrame::DCFrame(const wxString& title,
   right_sizer->AddSpacer(5);
 
   // Create the CAN ID Selection Box
-  selector_box = std::shared_ptr<wxCheckListBox>(new wxCheckListBox());
+  selector_box = std::unique_ptr<wxCheckListBox>(new wxCheckListBox());
   selector_box->Create(this, -1, wxPoint(0, 0), wxSize(200, 350));
 
   right_sizer->Add(selector_box.get(), main_flags.Proportion(1));
@@ -216,10 +240,10 @@ DCFrame::DCFrame(const wxString& title,
   right_sizer->AddSpacer(5);
 
   // Create the Event Control Box
-  event_panel = std::shared_ptr<wxPanel>(new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200, 50)));
+  event_panel = std::unique_ptr<wxPanel>(new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200, 50)));
 
-  pub_event_btn = std::shared_ptr<wxButton>(new wxButton());
-  pub_event_txt = std::shared_ptr<wxStaticText>(new wxStaticText());
+  pub_event_btn = std::unique_ptr<wxButton>(new wxButton());
+  pub_event_txt = std::unique_ptr<wxStaticText>(new wxStaticText());
 
   pub_event_btn->Create(event_panel.get(), ID_BTN_PUBLISH_EVENT, "Publish Event", wxPoint(0, 0), wxSize(200, 50));
   pub_event_txt->Create(event_panel.get(), wxID_ANY, "");
@@ -248,17 +272,24 @@ DCFrame::DCFrame(const wxString& title,
   Connect(wxID_ANY, wxEVT_CMD_UPDATE_MSGS, wxThreadEventHandler(DCFrame::OnMsgsUpdate), NULL, this);
 
   // Start the render update timer with a 10ms interval.
-  render_timer = std::shared_ptr<DCRenderTimer>(new DCRenderTimer);
+  render_timer = std::unique_ptr<DCRenderTimer>(new DCRenderTimer);
   render_timer->Start(100);
 
   // The ROS stuff
   ros::NodeHandle node_handle;
   ros::NodeHandle private_handle("~");
   spinner = std::unique_ptr<ros::AsyncSpinner>(new ros::AsyncSpinner(2));
+  bool playback_bool = false;
 
-  private_handle.getParam("playback", in_playback_mode);
+  if (!private_handle.getParam("playback", playback_bool))
+    playback_bool = false;
 
-  if (in_playback_mode)
+  if (playback_bool)
+    DCOptions::event_mode = PLAYBACK;
+  else
+    DCOptions::event_mode = REAL_TIME;
+
+  if (DCOptions::event_mode == PLAYBACK)
   {
     ROS_INFO("Waiting for playback to begin...");
 
@@ -281,7 +312,7 @@ DCFrame::DCFrame(const wxString& title,
   event_pub = node_handle.advertise<decanstructor::CanEvent>("events", 20);
   can_sub = node_handle.subscribe("can_in", 100, &DCFrame::OnCanMsg, this);
 
-  if (in_playback_mode)
+  if (DCOptions::event_mode == PLAYBACK)
   {
     ROS_INFO("Entering playback mode...");
     event_sub = node_handle.subscribe("events", 20, &DCFrame::OnEventPublished, this);
@@ -360,6 +391,16 @@ void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
   }
 }
 
+void DCFrame::OnSignalAnalyzerClick(wxCommandEvent& event)
+{
+  // Set up Signal Analyzer window
+  DCSignalAnalyzerFrame* sa_frame = new DCSignalAnalyzerFrame(this,
+                                                              "Signal Analyzer",
+                                                              wxPoint(100, 100),
+                                                              wxSize(250, 250));
+  sa_frame->Show(true);
+}
+
 void DCFrame::OnSelectorBoxTick(wxCommandEvent& event)
 {
   auto& local_selector_box = wxGetApp().frame->selector_box;
@@ -432,7 +473,7 @@ void DCFrame::OnCanMsg(const can_msgs::Frame::ConstPtr& msg)
   auto& msgs_local = wxGetApp().rcvd_msgs;
   auto found_msg = msgs_local.find(msg->id);
   // Do the following to get reasonable numbers to play with.
-  uint64_t header_ms = (msg->header.stamp - DCOptions::one_day_ago).toNSec() / 1000000;
+  uint64_t ros_now_ms = (ros::Time::now() - DCOptions::one_day_ago).toNSec() / 1000000;
 
   if (found_msg != msgs_local.end())
   {
@@ -445,12 +486,12 @@ void DCFrame::OnCanMsg(const can_msgs::Frame::ConstPtr& msg)
       if (msg->data[i] != found_msg->second->bytes[i])
       {
         found_msg->second->bytes[i] = msg->data[i];
-        found_msg->second->last_updated_ms[i] = header_ms;
+        found_msg->second->last_updated_ms[i] = ros_now_ms;
       }
     }
 
     found_msg->second->time_last_rcvd_ms = found_msg->second->time_rcvd_ms;
-    found_msg->second->time_rcvd_ms = header_ms;
+    found_msg->second->time_rcvd_ms = ros_now_ms;
   }
   else
   {
@@ -462,10 +503,10 @@ void DCFrame::OnCanMsg(const can_msgs::Frame::ConstPtr& msg)
     {
       new_msg->bytes.push_back(msg->data[i]);
       new_msg->last_bytes.push_back(msg->data[i]);
-      new_msg->last_updated_ms.push_back(header_ms);
+      new_msg->last_updated_ms.push_back(ros_now_ms);
     }
 
-    new_msg->time_rcvd_ms = header_ms;
+    new_msg->time_rcvd_ms = ros_now_ms;
     new_msg->time_last_rcvd_ms = 0;
     msgs_local.insert(std::make_pair(msg->id, new_msg));
   }
@@ -473,6 +514,12 @@ void DCFrame::OnCanMsg(const can_msgs::Frame::ConstPtr& msg)
   wxThreadEvent evt(wxEVT_CMD_UPDATE_MSGS);
   evt.SetInt(msg->id);
   wxGetApp().frame->GetEventHandler()->QueueEvent(evt.Clone());
+}
+
+void DCFrame::OnGridSelect(wxGridEvent& event)
+{
+  new_grid_select = true;
+  event.Skip();
 }
 
 bool DCNode::OnInit()
@@ -483,6 +530,8 @@ bool DCNode::OnInit()
   // wxWidgets Init
   frame = new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340));
   frame->Show(true);
+
+  SetTopWindow(frame);
 
   return true;
 }

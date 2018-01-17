@@ -58,6 +58,7 @@ include_directories(
 include("${wxWidgets_USE_FILE}")
 
 add_executable(${PROJECT_NAME}_node
+  src/signal_analyzer.cpp
   src/decanstructor_node.cpp
   ${SRC_LIST}
 )

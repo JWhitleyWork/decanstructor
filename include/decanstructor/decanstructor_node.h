@@ -1,30 +1,20 @@
 #ifndef DECANSTRUCTOR_NODE_H
 #define DECANSTRUCTOR_NODE_H
 
-#include <memory>
-#include <cstdio>
-#include <mutex>
-#include <unordered_map>
-#include <iomanip>
+#include <common.h>
+#include <signal_analyzer.h>
 
-#include <wx/wxprec.h>
-#ifndef WX_PRECOMP
-    #include <wx/wx.h>
-#endif
-#include <wx/grid.h>
-
-#include <ros/ros.h>
 #include <can_msgs/Frame.h>
 #include <decanstructor/CanEvent.h>
 
 namespace DeCANstructor
 {
   wxDECLARE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
-  wxDECLARE_EVENT(wxEVT_CMD_EVENT_PUBLISHED, wxThreadEvent);
 
   enum
   {
-    ID_BTN_UNCHECK_ALL = 1,
+    ID_BTN_SIGNAL_ANALYZER = 1,
+    ID_BTN_UNCHECK_ALL,
     ID_BTN_CHECK_ALL,
     ID_BTN_PUBLISH_EVENT
   };
@@ -99,17 +89,18 @@ namespace DeCANstructor
               const wxPoint& pos,
               const wxSize& size);
 
-      std::shared_ptr<wxGrid> main_grid;
-      std::shared_ptr<wxCheckListBox> selector_box;
-      std::shared_ptr<DCRenderTimer> render_timer;
-      std::shared_ptr<wxPanel> event_panel;
-      std::shared_ptr<wxButton> pub_event_btn;
-      std::shared_ptr<wxStaticText> pub_event_txt;
+      std::unique_ptr<wxGrid> main_grid;
+      std::unique_ptr<wxButton> signal_analyzer_btn;
+      std::unique_ptr<wxCheckListBox> selector_box;
+      std::unique_ptr<DCRenderTimer> render_timer;
+      std::unique_ptr<wxPanel> event_panel;
+      std::unique_ptr<wxButton> pub_event_btn;
+      std::unique_ptr<wxStaticText> pub_event_txt;
 
       std::mutex event_mut;
-      bool in_playback_mode;
       bool got_new_event;
       uint64_t most_recent_event_time;
+      bool new_grid_select;
 
     private:
       std::unique_ptr<ros::AsyncSpinner> spinner;
@@ -121,11 +112,13 @@ namespace DeCANstructor
       void OnExit(wxCommandEvent& event);
       void OnAbout(wxCommandEvent& event);
       void OnMsgsUpdate(wxThreadEvent& event);
+      void OnSignalAnalyzerClick(wxCommandEvent& event);
       void OnSelectorBoxTick(wxCommandEvent& event);
       void OnUncheckAll(wxCommandEvent& event);
       void OnCheckAll(wxCommandEvent& event);
       void OnPublishEvent(wxCommandEvent& event);
       void OnEventPublished(const decanstructor::CanEvent::ConstPtr& msg);
+      void OnGridSelect(wxGridEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -143,14 +136,16 @@ namespace DeCANstructor
 	wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)
 		EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
 		EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
+    EVT_BUTTON(ID_BTN_SIGNAL_ANALYZER, DCFrame::OnSignalAnalyzerClick)
     EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
     EVT_BUTTON(ID_BTN_UNCHECK_ALL, DCFrame::OnUncheckAll)
     EVT_BUTTON(ID_BTN_CHECK_ALL, DCFrame::OnCheckAll)
     EVT_BUTTON(ID_BTN_PUBLISH_EVENT, DCFrame::OnPublishEvent)
+    EVT_GRID_LABEL_LEFT_CLICK(DCFrame::OnGridSelect)
+    EVT_GRID_CELL_LEFT_CLICK(DCFrame::OnGridSelect)
 	wxEND_EVENT_TABLE()
 
   wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
-  wxDEFINE_EVENT(wxEVT_CMD_EVENT_PUBLISHED, wxThreadEvent);
 }
 
 wxIMPLEMENT_APP(DeCANstructor::DCNode);
