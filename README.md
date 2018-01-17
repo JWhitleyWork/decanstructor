@@ -10,4 +10,4 @@ You will need the wxWidgets core packages. To install these on Ubuntu:
 
 ## Screenshots ##
 
-![Screenshot 1](/screenshots/decanstructor_1.png?raw=true "screenshot 1")
+![Screenshot 1](/screenshots/decanstructor_2.png?raw=true "screenshot 1")
