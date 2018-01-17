@@ -102,15 +102,20 @@ namespace DeCANstructor
       std::shared_ptr<wxGrid> main_grid;
       std::shared_ptr<wxCheckListBox> selector_box;
       std::shared_ptr<DCRenderTimer> render_timer;
+      std::shared_ptr<wxPanel> event_panel;
       std::shared_ptr<wxButton> pub_event_btn;
       std::shared_ptr<wxStaticText> pub_event_txt;
+
+      std::mutex event_mut;
+      bool in_playback_mode;
+      bool got_new_event;
+      uint64_t most_recent_event_time;
 
     private:
       std::unique_ptr<ros::AsyncSpinner> spinner;
       ros::Publisher event_pub;
       ros::Subscriber can_sub;
       ros::Subscriber event_sub;
-      bool in_playback_mode;
 
       void OnCanMsg(const can_msgs::Frame::ConstPtr& msg);
       void OnExit(wxCommandEvent& event);

@@ -60,12 +60,45 @@ void DCRenderTimer::Notify()
     local_grid->SetCellBackgroundColour(it->row, it->col, cell_color);
     local_grid->SetCellTextColour(it->row, it->col, text_color);
   }
+
+  if (wxGetApp().frame->in_playback_mode)
+  {
+    std::lock_guard<std::mutex> event_mut(wxGetApp().frame->event_mut);
+
+    if (wxGetApp().frame->got_new_event)
+    {
+      uint64_t time_diff = ros_now_ms - wxGetApp().frame->most_recent_event_time;
+
+      if (time_diff < DCOptions::fade_out_time_ms)
+      {
+        float norm_time_interval = time_diff / (float)(DCOptions::fade_out_time_ms - 100);
+        norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
+        uint8_t color_fade = (uint8_t)(norm_time_interval * 255.0);
+
+        wxColour panel_color;
+        panel_color.Set(color_fade, 255, color_fade);
+        wxGetApp().frame->event_panel->SetBackgroundColour(panel_color);
+
+        wxColour text_color;
+        text_color.Set(color_fade, color_fade, color_fade);
+        wxGetApp().frame->pub_event_txt->SetForegroundColour(text_color);
+
+        if (norm_time_interval == 1.0)
+        {
+          ROS_INFO("Event fade is done.");
+          wxGetApp().frame->got_new_event = false;
+        }
+      }
+    }
+  }
 }
 
 DCFrame::DCFrame(const wxString& title,
                  const wxPoint& pos,
                  const wxSize& size) :
   in_playback_mode(false),
+  got_new_event(false),
+  most_recent_event_time(0),
   wxFrame(NULL,
           wxID_ANY,
           title,
@@ -183,18 +216,19 @@ DCFrame::DCFrame(const wxString& title,
   right_sizer->AddSpacer(5);
 
   // Create the Event Control Box
-  wxPanel* event_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200, 50));
+  event_panel = std::shared_ptr<wxPanel>(new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(200, 50)));
 
   pub_event_btn = std::shared_ptr<wxButton>(new wxButton());
   pub_event_txt = std::shared_ptr<wxStaticText>(new wxStaticText());
 
-  pub_event_btn->Create(event_panel, ID_BTN_PUBLISH_EVENT, "Publish Event", wxPoint(0, 0), wxSize(200, 50));
-  pub_event_txt->Create(event_panel, wxID_ANY, "");
+  pub_event_btn->Create(event_panel.get(), ID_BTN_PUBLISH_EVENT, "Publish Event", wxPoint(0, 0), wxSize(200, 50));
+  pub_event_txt->Create(event_panel.get(), wxID_ANY, "");
   pub_event_txt->SetLabelMarkup("<b><big>Event Published</big></b>");
+  pub_event_txt->SetForegroundColour(wxColour(255, 255, 255));
 
   pub_event_txt->CentreOnParent();
 
-  event_sizer->Add(event_panel);
+  event_sizer->Add(event_panel.get());
 
   right_sizer->Add(event_sizer, expand_flag.Proportion(0));
 
@@ -385,6 +419,10 @@ void DCFrame::OnPublishEvent(wxCommandEvent& event)
 
 void DCFrame::OnEventPublished(const decanstructor::CanEvent::ConstPtr& msg)
 {
+  std::lock_guard<std::mutex> event_mut(wxGetApp().frame->event_mut);
+  wxGetApp().frame->got_new_event = true;
+  wxGetApp().frame->most_recent_event_time = (ros::Time::now() - DCOptions::one_day_ago).toNSec() / 1000000;
+  ROS_INFO("Got a new event.");
 }
 
 void DCFrame::OnCanMsg(const can_msgs::Frame::ConstPtr& msg)
