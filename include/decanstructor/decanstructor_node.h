@@ -25,6 +25,13 @@ namespace DeCANstructor
     PLAYBACK
   };
 
+  enum SortDirection
+  {
+    NONE,
+    ASCENDING,
+    DESCENDING
+  };
+
   struct CanMsgDetail
   {
     std::vector<uint8_t> bytes;
@@ -33,9 +40,8 @@ namespace DeCANstructor
     uint64_t time_rcvd_ms = 0;
     uint64_t time_last_rcvd_ms = 0;
     unsigned int avg_rate = 0;
+    int grid_index = -1;
     bool hidden = false;
-    int grid_index;
-    int selector_index;
   };
 
   struct CellUpdate
@@ -97,6 +103,7 @@ namespace DeCANstructor
       std::unique_ptr<wxButton> pub_event_btn;
       std::unique_ptr<wxStaticText> pub_event_txt;
 
+      std::mutex main_grid_mut;
       std::mutex event_mut;
       bool got_new_event;
       uint64_t most_recent_event_time;
@@ -107,6 +114,8 @@ namespace DeCANstructor
       ros::Publisher event_pub;
       ros::Subscriber can_sub;
       ros::Subscriber event_sub;
+
+      void RedrawMessages();
 
       void OnCanMsg(const can_msgs::Frame::ConstPtr& msg);
       void OnExit(wxCommandEvent& event);
@@ -119,6 +128,7 @@ namespace DeCANstructor
       void OnPublishEvent(wxCommandEvent& event);
       void OnEventPublished(const decanstructor::CanEvent::ConstPtr& msg);
       void OnGridSelect(wxGridEvent& event);
+      void OnSortById(wxGridEvent& event);
 
       wxDECLARE_EVENT_TABLE();
   };
@@ -129,7 +139,7 @@ namespace DeCANstructor
     public:
       virtual bool OnInit();
       DCFrame* frame;
-      std::unordered_map<uint32_t, std::shared_ptr<CanMsgDetail>> rcvd_msgs;
+      std::map<uint32_t, std::shared_ptr<CanMsgDetail>> rcvd_msgs;
       std::mutex rcvd_msgs_mut;
   };
 
@@ -143,6 +153,7 @@ namespace DeCANstructor
     EVT_BUTTON(ID_BTN_PUBLISH_EVENT, DCFrame::OnPublishEvent)
     EVT_GRID_LABEL_LEFT_CLICK(DCFrame::OnGridSelect)
     EVT_GRID_CELL_LEFT_CLICK(DCFrame::OnGridSelect)
+    EVT_GRID_COL_SORT(DCFrame::OnSortById)
 	wxEND_EVENT_TABLE()
 
   wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);
