@@ -2,12 +2,6 @@
 
 The definitive CAN analysis tool for ROS. Allows rapid prototyping, reverse-engineering, and monitoring of CAN-based systems.
 
-## Installation ##
-
-You will need the wxWidgets core packages. To install these on Ubuntu:
-
-    sudo apt-get install libwxgtk3.0-dev
-
 ## Usage ##
 
 By default, the node subscribes to the `can_in` topic with type can_msgs/Frame.
