@@ -13,7 +13,6 @@ jobs:
       # Set the python path manually to include /usr/-/python2.7/dist-packages
       # as this is where apt-get installs python packages.
       PYTHONPATH: $PYTHONPATH:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages
-      REPONAME: ${$GITHUB_REPOSITORY#JWhitleyAStuff\/}
       ROS_DISTRO: melodic
     steps:
     - uses: actions/checkout@v1
@@ -32,7 +31,7 @@ jobs:
       run: |
         source /opt/ros/$ROS_DISTRO/setup.bash
         mkdir -p catkin_ws/src
-        mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/$REPONAME/
+        mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/${$GITHUB_REPOSITORY#JWhitleyAStuff\/}/
         cd catkin_ws
         catkin init
     - name: Build
