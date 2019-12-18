@@ -31,7 +31,7 @@ jobs:
       run: |
         source /opt/ros/$ROS_DISTRO/setup.bash
         mkdir -p catkin_ws/src
-        mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/${$GITHUB_REPOSITORY#JWhitleyAStuff\/}/
+        mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/decanstructor/
         cd catkin_ws
         catkin init
     - name: Build
