@@ -7,26 +7,36 @@ jobs:
 
     runs-on: ubuntu-latest
     env:
-      ROS_CI_DESKTOP: "`lsb_release -cs`"  # e.g. [trusty|xenial|...]
+      CI_DISTRO: "`lsb_release -cs`"  # e.g. [trusty|xenial|...]
       CI_SOURCE_PATH: $(pwd)
-      ROSINSTALL_FILE: $CI_SOURCE_PATH/dependencies.rosinstall
-      CATKIN_OPTIONS: $CI_SOURCE_PATH/catkin.options
       ROS_PARALLEL_JOBS: '-j8 -l6'
       # Set the python path manually to include /usr/-/python2.7/dist-packages
       # as this is where apt-get installs python packages.
       PYTHONPATH: $PYTHONPATH:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages
+      REPONAME: ${$GITHUB_REPOSITORY#JWhitleyAStuff\/}
       ROS_DISTRO: melodic
     steps:
     - uses: actions/checkout@v1
     - name: Install ROS
       run: |
-          sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $ROS_CI_DESKTOP main\" > /etc/apt/sources.list.d/ros-latest.list"
-          sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-          sudo apt-get update -qq
-          sudo apt-get install -y dpkg
-          sudo apt-get install -y python-catkin-tools python-catkin-pkg python-rosdep python-wstool python-catkin-tools ros-melodic-ros-base
-          source /opt/ros/$ROS_DISTRO/setup.bash
-          # Prepare rosdep to install dependencies.
-          sudo rosdep init
-          rosdep update
-          rosdep install -y --from-paths . --ignore-src
+        sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $CI_DISTRO main\" > /etc/apt/sources.list.d/ros-latest.list"
+        sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+        sudo apt-get update -qq
+        sudo apt-get install -y dpkg
+        sudo apt-get install -y python-catkin-tools python-catkin-pkg python-rosdep python-wstool python-catkin-tools
+        # Prepare rosdep to install dependencies.
+        sudo rosdep init
+        rosdep update
+        rosdep install -y --from-paths . --ignore-src --rosdistro $ROS_DISTRO
+    - name: Create Workspace
+      run: |
+        source /opt/ros/$ROS_DISTRO/setup.bash
+        mkdir -p catkin_ws/src
+        mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/$REPONAME/
+        cd catkin_ws
+        catkin init
+    - name: Build
+      run: |
+        source /opt/ros/$ROS_DISTRO/setup.bash
+        cd catkin_ws
+        catkin build
