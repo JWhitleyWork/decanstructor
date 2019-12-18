@@ -16,6 +16,7 @@
   <depend>roscpp</depend>
   <depend>can_msgs</depend>
   <depend>std_msgs</depend>
+  <depend>wxwidgets</depend>
 
   <exec_depend>message_runtime</exec_depend>
 </package>
