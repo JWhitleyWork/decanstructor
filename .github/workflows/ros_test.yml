@@ -3,9 +3,8 @@ name: ROS Test
 on: [push]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  melodic_build:
+    runs-on: ubuntu-18.04
     env:
       CI_DISTRO: "`lsb_release -cs`"  # e.g. [trusty|xenial|...]
       CI_SOURCE_PATH: $(pwd)
@@ -30,7 +29,41 @@ jobs:
     - name: Create Workspace
       run: |
         source /opt/ros/$ROS_DISTRO/setup.bash
-        mkdir -p catkin_ws/src
+        mkdir -p catkin_ws/src/decanstructor
+        mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/decanstructor/
+        cd catkin_ws
+        catkin init
+    - name: Build
+      run: |
+        source /opt/ros/$ROS_DISTRO/setup.bash
+        cd catkin_ws
+        catkin build
+  kinetic_build:
+    runs-on: ubuntu-16.04
+    env:
+      CI_DISTRO: "`lsb_release -cs`"  # e.g. [trusty|xenial|...]
+      CI_SOURCE_PATH: $(pwd)
+      ROS_PARALLEL_JOBS: '-j8 -l6'
+      # Set the python path manually to include /usr/-/python2.7/dist-packages
+      # as this is where apt-get installs python packages.
+      PYTHONPATH: $PYTHONPATH:/usr/lib/python2.7/dist-packages:/usr/local/lib/python2.7/dist-packages
+      ROS_DISTRO: kinetic
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install ROS
+      run: |
+        sudo sh -c "echo \"deb http://packages.ros.org/ros/ubuntu $CI_DISTRO main\" > /etc/apt/sources.list.d/ros-latest.list"
+        sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+        sudo apt-get update -qq
+        sudo apt-get install -y python-catkin-tools python-catkin-pkg python-rosdep python-wstool python-catkin-tools
+        # Prepare rosdep to install dependencies.
+        sudo rosdep init
+        rosdep update
+        rosdep install -y --from-paths . --ignore-src --rosdistro $ROS_DISTRO
+    - name: Create Workspace
+      run: |
+        source /opt/ros/$ROS_DISTRO/setup.bash
+        mkdir -p catkin_ws/src/decanstructor
         mv `find -maxdepth 1 -not -name . -not -name catkin_ws` catkin_ws/src/decanstructor/
         cd catkin_ws
         catkin init
