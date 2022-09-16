@@ -1,11 +1,13 @@
-#ifndef DECANSTRUCTOR_NODE_H
-#define DECANSTRUCTOR_NODE_H
+#ifndef DECANSTRUCTOR__DECANSTRUCTOR_NODE_HPP_
+#define DECANSTRUCTOR__DECANSTRUCTOR_NODE_HPP_
 
-#include <common.h>
-#include <message_analyzer.h>
+#include <common.hpp>
+#include <message_analyzer.hpp>
 
-#include <can_msgs/Frame.h>
-#include <decanstructor/CanEvent.h>
+#include <chrono>
+
+#include <can_msgs/msg/frame.hpp>
+#include <decanstructor/msg/can_event.hpp>
 
 namespace DeCANstructor
 {
@@ -76,7 +78,7 @@ namespace DeCANstructor
   {
     public:
       static uint16_t fade_out_time_ms;
-      static ros::Time one_day_ago;
+      static std::chrono::time_point<std::chrono::system_clock> one_day_ago;
       static EventMode event_mode;
   };
 
@@ -110,10 +112,10 @@ namespace DeCANstructor
       bool new_grid_select;
 
     private:
-      std::unique_ptr<ros::AsyncSpinner> spinner;
-      ros::Publisher event_pub;
-      ros::Subscriber can_sub;
-      ros::Subscriber event_sub;
+//      std::unique_ptr<ros::AsyncSpinner> spinner;
+      std::shared_ptr<rclcpp::Publisher> event_pub;
+      std::shared_ptr<rclcpp::Subscription> can_sub;
+      std::shared_ptr<rclcpp::Subscription> event_sub;
 
       void RedrawMessages();
 
@@ -162,4 +164,4 @@ namespace DeCANstructor
 wxIMPLEMENT_APP(DeCANstructor::DCNode);
 wxDECLARE_APP(DeCANstructor::DCNode);
 
-#endif
+#endif  // DECANSTRUCTOR__DECANSTRUCTOR_NODE_HPP_

@@ -1,9 +1,11 @@
-#include <decanstructor_node.h>
+#include <decanstructor_node.hpp>
+
+#include <chrono>
 
 using namespace DeCANstructor;
 
 uint16_t DCOptions::fade_out_time_ms = 3000;
-ros::Time DCOptions::one_day_ago = ros::Time();
+std::chrono::time_point<std::chrono::system_clock> DCOptions::one_day_ago = std::chrono::system_clock::now();
 EventMode DCOptions::event_mode = REAL_TIME;
 
 void DCRenderTimer::Notify()
@@ -454,7 +456,7 @@ void DCFrame::RedrawMessages()
 
 void DCFrame::OnExit(wxCommandEvent& event)
 {
-  ros::shutdown();
+  rclcpp::shutdown();
   Close(true);
 }
 
@@ -662,7 +664,7 @@ void DCFrame::OnSortById(wxGridEvent& event)
 bool DCNode::OnInit()
 {
   // ROS Node init
-  ros::init(wxGetApp().argc, wxGetApp().argv, "DeCANstructor");
+  rclcpp::init(wxGetApp().argc, wxGetApp().argv);
 
   // wxWidgets Init
   frame = new DCFrame("DeCANstructor", wxPoint(50, 50), wxSize(450, 340));

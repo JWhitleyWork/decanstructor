@@ -1,5 +1,5 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef DECANSTRUCTOR__COMMON_HPP_
+#define DECANSTRUCTOR__COMMON_HPP_
 
 #include <memory>
 #include <cstdio>
@@ -13,6 +13,6 @@
 #endif
 #include <wx/grid.h>
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 
-#endif
+#endif  // DECANSTRUCTOR__COMMON_HPP_
