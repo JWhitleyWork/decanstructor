@@ -1,8 +1,9 @@
-#include <decanstructor_node.hpp>
+#include <decanstructor/decanstructor_node.hpp>
 
 #include <chrono>
 
-using namespace DeCANstructor;
+namespace DeCANstructor
+{
 
 uint16_t DCOptions::fade_out_time_ms = 3000;
 std::chrono::time_point<std::chrono::system_clock> DCOptions::one_day_ago = std::chrono::system_clock::now();
@@ -674,3 +675,5 @@ bool DCNode::OnInit()
 
   return true;
 }
+
+}  // namespace DeCANstructor

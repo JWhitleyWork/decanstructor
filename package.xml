@@ -1,21 +1,33 @@
 <?xml version="1.0"?>
-<package format="2">
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>decanstructor</name>
   <version>0.0.1</version>
   <description>The decanstructor package</description>
-  <maintainer email="jwhitley@autonomoustuff.com">Josh Whitley</maintainer>
-  <author email="jwhitley@autonomoustuff.com">Josh Whitley</author>
+  <maintainer email="josh@electrifiedautnomy.com">Josh Whitley</maintainer>
+  <author email="josh@electrifiedautonomy.com">Josh Whitley</author>
 
   <license>MIT</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
 
-  <build_depend>message_generation</build_depend>
+  <build_depend>rosidl_default_generators</build_depend>
 
-  <depend>roscpp</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>can_msgs</depend>
   <depend>std_msgs</depend>
   <depend>wxwidgets</depend>
 
-  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

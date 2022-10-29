@@ -1,7 +1,7 @@
 #ifndef DECANSTRUCTOR__MESSAGE_ANALYZER_HPP_
 #define DECANSTRUCTOR__MESSAGE_ANALYZER_HPP_
 
-#include <common.hpp>
+#include <decanstructor/common.hpp>
 
 namespace DeCANstructor
 {

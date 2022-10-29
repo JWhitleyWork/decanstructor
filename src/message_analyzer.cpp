@@ -1,4 +1,4 @@
-#include <message_analyzer.h>
+#include <decanstructor/message_analyzer.hpp>
 
 using namespace DeCANstructor;
 
