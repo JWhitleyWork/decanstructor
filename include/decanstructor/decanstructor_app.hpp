@@ -28,6 +28,8 @@
 #include <wx/grid.h>
 
 #include <can_msgs/msg/frame.hpp>
+#include <rclcpp/executors/single_threaded_executor.hpp>
+#include <rclcpp/logging.hpp>
 
 #include <chrono>
 #include <map>
@@ -39,6 +41,7 @@
 #include "decanstructor/message_analyzer.hpp"
 
 using CanFrameMsgT = can_msgs::msg::Frame;
+using rclcpp::executors::SingleThreadedExecutor;
 
 namespace DeCANstructor
 {
@@ -126,6 +129,7 @@ public:
     const wxPoint & pos,
     const wxSize & size
   );
+  ~DCFrame();
 
   void OnEventPublished();
   void OnCanMsg(const CanFrameMsgT::SharedPtr msg);
@@ -143,6 +147,7 @@ public:
   bool got_new_event;
   uint64_t most_recent_event_time;
   bool new_grid_select;
+  wxLog * logger;
 
 private:
   void RedrawMessages();
@@ -170,6 +175,7 @@ public:
   std::map<uint32_t, std::shared_ptr<CanMsgDetail>> rcvd_msgs;
   std::mutex rcvd_msgs_mut;
   std::unique_ptr<DCRosNode> ros_node;
+  SingleThreadedExecutor ros_executor;
   DCOptions options;
 };
 

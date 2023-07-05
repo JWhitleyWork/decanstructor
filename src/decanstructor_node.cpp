@@ -62,6 +62,7 @@ DCRosNode::DCRosNode(const rclcpp::NodeOptions & options)
 
 void DCRosNode::OnCanMsg(const CanFrameMsgT::SharedPtr msg)
 {
+  RCLCPP_INFO(this->get_logger(), "Got callback!");
   if (m_can_msg_cb_func) {
     (*m_can_msg_cb_func)(msg);
   }

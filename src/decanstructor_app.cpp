@@ -20,6 +20,8 @@
 
 #include "decanstructor/decanstructor_app.hpp"
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <chrono>
 #include <memory>
 #include <utility>
@@ -37,12 +39,10 @@ void DCRenderTimer::Notify()
   auto & local_msgs = wxGetApp().rcvd_msgs;
   auto & local_node = wxGetApp().ros_node;
   auto & local_options = wxGetApp().options;
+  auto & local_logger = wxGetApp().frame->logger;
+  wxLog::SetActiveTarget(local_logger);
 
-  if (!rclcpp::ok()) {
-    // Shutting down
-    wxGetApp().frame->Close(true);
-    return;
-  }
+  wxLogMessage("Notify called.");
 
   uint64_t ros_now_ms = local_node->get_ros_time().time_since_epoch().count() / 1000000;
   std::vector<CellUpdate> cells_to_update;
@@ -152,7 +152,6 @@ void DCRenderTimer::Notify()
         wxGetApp().frame->pub_event_txt->SetForegroundColour(text_color);
 
         if (norm_time_interval == 1.0) {
-          RCLCPP_INFO(local_node->get_logger(), "Event fade is done.");
           wxGetApp().frame->got_new_event = false;
         }
       }
@@ -170,6 +169,14 @@ void DCRenderTimer::Notify()
 
     wxGetApp().frame->new_grid_select = false;
   }
+
+  // Update ROS stuff
+  if (!rclcpp::ok()) {
+    // Shutting down
+    wxGetApp().frame->Close(true);
+  } else {
+    wxGetApp().ros_executor.spin_some();
+  }
 }
 
 DCFrame::DCFrame(
@@ -180,6 +187,12 @@ DCFrame::DCFrame(
   got_new_event(false),
   most_recent_event_time(0)
 {
+  // Set up the logger
+  logger = new wxLogStderr();
+  wxLog::SetActiveTarget(logger);
+
+  wxLogMessage("Started initialization");
+
   // Set up basic window properties
   wxMenu * menu_file = new wxMenu;
   menu_file->Append(wxID_EXIT);
@@ -355,6 +368,12 @@ DCFrame::DCFrame(
   SetSizerAndFit(main_sizer);
 }
 
+DCFrame::~DCFrame()
+{
+  wxLog::SetActiveTarget(nullptr);
+  delete logger;
+}
+
 void DCFrame::RedrawMessages()
 {
   std::lock_guard<std::mutex> msgs_mut(wxGetApp().rcvd_msgs_mut);
@@ -436,7 +455,6 @@ void DCFrame::RedrawMessages()
 void DCFrame::OnExit(wxCommandEvent & event)
 {
   (void)event;
-  rclcpp::shutdown();
   Close(true);
 }
 
@@ -663,6 +681,8 @@ bool DCApp::OnInit()
   if (options.event_mode == EventMode::PLAYBACK) {
     ros_node->register_can_event_callback(std::bind(&DCFrame::OnEventPublished, frame.get()));
   }
+
+  ros_executor.add_node(ros_node->get_node_base_interface());
 
   return true;
 }
