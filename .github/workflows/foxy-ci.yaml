@@ -1,0 +1,28 @@
+name: Foxy Workflow
+
+on:
+  - pull_request
+  - push
+
+jobs:
+  build-ros2-foxy:
+    runs-on: ubuntu-22.04
+    container:
+      image: rostooling/setup-ros-docker:ubuntu-focal-ros-foxy-desktop-latest
+    steps:
+      - name: Build Environment
+        uses: ros-tooling/setup-ros@v0.5
+        with:
+          required-ros-distributions: foxy
+      - name: Run Tests
+        id: foxy_action_ros_ci_step
+        uses: ros-tooling/action-ros-ci@v0.3
+        with:
+          package-name: decanstructor
+          target-ros2-distro: foxy
+      - name: Upload logs
+        uses: actions/upload-artifact@v1
+        with:
+          name: colcon-logs-foxy
+          path: ${{ steps.foxy_action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
+        if: always()
