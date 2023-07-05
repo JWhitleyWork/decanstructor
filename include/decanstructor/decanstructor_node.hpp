@@ -1,17 +1,31 @@
 // Copyright 2017-2023 Joshua Whitley
 //
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file or at
-// https://opensource.org/licenses/MIT.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 #ifndef DECANSTRUCTOR__DECANSTRUCTOR_NODE_HPP_
 #define DECANSTRUCTOR__DECANSTRUCTOR_NODE_HPP_
 
-#include "decanstructor/common.hpp"
-
 #include <rclcpp/rclcpp.hpp>
 #include <can_msgs/msg/frame.hpp>
 #include <decanstructor/msg/can_event.hpp>
+
+#include <memory>
 
 using CanEventMsgT = decanstructor::msg::CanEvent;
 using CanFrameMsgT = can_msgs::msg::Frame;
@@ -22,7 +36,7 @@ namespace DeCANstructor
 class DCRosNode : public rclcpp::Node
 {
 public:
-  DCRosNode(const rclcpp::NodeOptions & options);
+  explicit DCRosNode(const rclcpp::NodeOptions & options);
   rclcpp::Logger & get_ros_logger();
   void register_can_msg_callback(
     std::function<void(const CanFrameMsgT::SharedPtr)> cb_func);
@@ -43,6 +57,6 @@ private:
   bool m_in_playback_mode;
 };
 
-}  // namesapce DeCANstructor
+}  // namespace DeCANstructor
 
 #endif  // DECANSTRUCTOR__DECANSTRUCTOR_NODE_HPP_

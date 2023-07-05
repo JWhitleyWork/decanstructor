@@ -1,12 +1,29 @@
 // Copyright 2017-2023 Joshua Whitley
 //
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file or at
-// https://opensource.org/licenses/MIT.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
 
 #include "decanstructor/decanstructor_app.hpp"
 
 #include <chrono>
+#include <memory>
+#include <utility>
+#include <vector>
 
 using CanEventMsgT = decanstructor::msg::CanEvent;
 using CanFrameMsgT = can_msgs::msg::Frame;
@@ -33,7 +50,7 @@ void DCRenderTimer::Notify()
 
   std::lock_guard<std::mutex> grid_mut(wxGetApp().frame->main_grid_mut);
 
-  wxGetApp().rcvd_msgs_mut.lock(); // Lock messages
+  std::unique_lock<std::mutex> msg_lock{wxGetApp().rcvd_msgs_mut};  // Lock messages
 
   if (local_grid->IsSortOrderAscending()) {
     for (auto it = local_msgs.begin(); it != local_msgs.end(); ++it) {
@@ -85,13 +102,14 @@ void DCRenderTimer::Notify()
     }
   }
 
-  wxGetApp().rcvd_msgs_mut.unlock(); // Unlock messages
+  msg_lock.unlock();  // Unlock messages
 
   for (auto it = cells_to_update.begin(); it != cells_to_update.end(); it++) {
     if (it->row >= 0 && it->row < local_grid->GetNumberRows()) {
       wxColour cell_color;
       wxColour text_color;
-      float norm_time_interval = it->time_diff / (float)(local_options.fade_out_time_ms - 100);
+      float norm_time_interval =
+        it->time_diff / static_cast<float>(local_options.fade_out_time_ms - 100);
       norm_time_interval =
         (norm_time_interval >
         1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
@@ -118,7 +136,8 @@ void DCRenderTimer::Notify()
       uint64_t time_diff = ros_now_ms - wxGetApp().frame->most_recent_event_time;
 
       if (time_diff < local_options.fade_out_time_ms) {
-        float norm_time_interval = time_diff / (float)(local_options.fade_out_time_ms - 100);
+        float norm_time_interval =
+          time_diff / static_cast<float>(local_options.fade_out_time_ms - 100);
         norm_time_interval =
           (norm_time_interval >
           1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
@@ -204,7 +223,8 @@ DCFrame::DCFrame(
   // Create the main grid
   main_grid = std::make_unique<wxGrid>(this, -1, wxPoint(0, 0), wxSize(600, 250));
 
-  // TODO: Automatically resize grid columns based on available space on window resize.
+  // TODO(jwhitleywork): Automatically resize grid columns based on available space
+  // on window resize.
 
   main_grid->CreateGrid(0, 10);
   main_grid->EnableEditing(false);
@@ -256,7 +276,7 @@ DCFrame::DCFrame(
   message_analyzer_btn->Create(
     this, static_cast<int>(ButtonType::MESSAGE_ANALYZER),
     "Analyze Message");
-  message_analyzer_btn->Enable(false); // Start disabled
+  message_analyzer_btn->Enable(false);  // Start disabled
 
   message_analyzer_sizer->Add(message_analyzer_btn.get(), expand_flag.Proportion(1));
 

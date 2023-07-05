@@ -5,9 +5,8 @@
   <version>0.1.0</version>
   <description>The decanstructor package</description>
   <maintainer email="josh@electrifiedautnomy.com">Josh Whitley</maintainer>
-  <author email="josh@electrifiedautonomy.com">Josh Whitley</author>
-
   <license>MIT</license>
+  <author email="josh@electrifiedautonomy.com">Josh Whitley</author>
 
   <buildtool_depend>ament_cmake_auto</buildtool_depend>
 
