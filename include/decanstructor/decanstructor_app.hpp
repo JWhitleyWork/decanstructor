@@ -1,5 +1,5 @@
 // Copyright 2017-2023 Joshua Whitley
-// 
+//
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
@@ -74,14 +74,14 @@ class DCGridTable : public wxGridTableBase
   int GetNumberRows();
   int GetNumberCols();
   wxString GetValue(int row, int col);
-  void SetValue(int row, int col, const wxString &value);
+  void SetValue(int row, int col, const wxString & value);
   void Clear();
-  bool InsertRows(size_t pos=0, size_t numRows=1);
-  bool AppendRows(size_t numRows=1);
-  bool DeleteRows(size_t pos=0, size_t numRows=1);
-  bool InsertCols(size_t pos=0, size_t numCols=1);
-  bool AppendCols(size_t numCols=1);
-  bool DeleteCols(size_t pos=0, size_t numCols=1);
+  bool InsertRows(size_t pos = 0, size_t numRows = 1);
+  bool AppendRows(size_t numRows = 1);
+  bool DeleteRows(size_t pos = 0, size_t numRows = 1);
+  bool InsertCols(size_t pos = 0, size_t numCols = 1);
+  bool AppendCols(size_t numCols = 1);
+  bool DeleteCols(size_t pos = 0, size_t numCols = 1);
   void SetRowLabelValue(int row, const wxString &);
   void SetColLabelValue(int col, const wxString &);
   wxString GetRowLabelValue(int row);
@@ -105,9 +105,9 @@ class DCFrame : public wxFrame
 {
 public:
   DCFrame(
-    const wxString& title,
-    const wxPoint& pos,
-    const wxSize& size
+    const wxString & title,
+    const wxPoint & pos,
+    const wxSize & size
   );
 
   void OnEventPublished();
@@ -157,16 +157,16 @@ public:
 };
 
 wxBEGIN_EVENT_TABLE(DCFrame, wxFrame)
-  EVT_MENU(wxID_EXIT,  DCFrame::OnExit)
-  EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
-  EVT_BUTTON(static_cast<int>(ButtonType::MESSAGE_ANALYZER), DCFrame::OnMessageAnalyzerClick)
-  EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
-  EVT_BUTTON(static_cast<int>(ButtonType::UNCHECK_ALL), DCFrame::OnUncheckAll)
-  EVT_BUTTON(static_cast<int>(ButtonType::CHECK_ALL), DCFrame::OnCheckAll)
-  EVT_BUTTON(static_cast<int>(ButtonType::PUBLISH_EVENT), DCFrame::OnPublishEvent)
-  EVT_GRID_LABEL_LEFT_CLICK(DCFrame::OnGridSelect)
-  EVT_GRID_CELL_LEFT_CLICK(DCFrame::OnGridSelect)
-  EVT_GRID_COL_SORT(DCFrame::OnSortById)
+EVT_MENU(wxID_EXIT, DCFrame::OnExit)
+EVT_MENU(wxID_ABOUT, DCFrame::OnAbout)
+EVT_BUTTON(static_cast<int>(ButtonType::MESSAGE_ANALYZER), DCFrame::OnMessageAnalyzerClick)
+EVT_CHECKLISTBOX(wxID_ANY, DCFrame::OnSelectorBoxTick)
+EVT_BUTTON(static_cast<int>(ButtonType::UNCHECK_ALL), DCFrame::OnUncheckAll)
+EVT_BUTTON(static_cast<int>(ButtonType::CHECK_ALL), DCFrame::OnCheckAll)
+EVT_BUTTON(static_cast<int>(ButtonType::PUBLISH_EVENT), DCFrame::OnPublishEvent)
+EVT_GRID_LABEL_LEFT_CLICK(DCFrame::OnGridSelect)
+EVT_GRID_CELL_LEFT_CLICK(DCFrame::OnGridSelect)
+EVT_GRID_COL_SORT(DCFrame::OnSortById)
 wxEND_EVENT_TABLE()
 
 wxDEFINE_EVENT(wxEVT_CMD_UPDATE_MSGS, wxThreadEvent);

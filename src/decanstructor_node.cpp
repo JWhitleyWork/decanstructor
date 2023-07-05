@@ -1,5 +1,5 @@
 // Copyright 2017-2023 Joshua Whitley
-// 
+//
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
@@ -26,8 +26,7 @@ DCRosNode::DCRosNode(const rclcpp::NodeOptions & options)
   // TODO(jwhitleywork): Get parameters and set m_options
   m_in_playback_mode = this->declare_parameter("playback", false);
 
-  if (m_in_playback_mode)
-  {
+  if (m_in_playback_mode) {
     RCLCPP_INFO(this->get_logger(), "Waiting for playback to begin...");
 
     while (this->now().nanoseconds() == 0 && rclcpp::ok()) {
@@ -40,7 +39,8 @@ DCRosNode::DCRosNode(const rclcpp::NodeOptions & options)
       return;
     } else {
       m_event_sub = this->create_subscription<CanEventMsgT>(
-        "events", rclcpp::QoS{20}, std::bind(&DCRosNode::OnEventPublished, this, std::placeholders::_1));
+        "events", rclcpp::QoS{20},
+        std::bind(&DCRosNode::OnEventPublished, this, std::placeholders::_1));
     }
   }
 }

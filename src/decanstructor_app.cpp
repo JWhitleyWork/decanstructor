@@ -1,5 +1,5 @@
 // Copyright 2017-2023 Joshua Whitley
-// 
+//
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
@@ -35,18 +35,13 @@ void DCRenderTimer::Notify()
 
   wxGetApp().rcvd_msgs_mut.lock(); // Lock messages
 
-  if (local_grid->IsSortOrderAscending())
-  {
-    for (auto it = local_msgs.begin(); it != local_msgs.end(); ++it)
-    {
-      if (it->second->grid_index > -1)
-      {
-        for (uint8_t i = 0; i < it->second->last_updated_ms.size(); i++) 
-        {
+  if (local_grid->IsSortOrderAscending()) {
+    for (auto it = local_msgs.begin(); it != local_msgs.end(); ++it) {
+      if (it->second->grid_index > -1) {
+        for (uint8_t i = 0; i < it->second->last_updated_ms.size(); i++) {
           uint64_t time_diff = ros_now_ms - it->second->last_updated_ms[i];
 
-          if (time_diff < local_options.fade_out_time_ms && !(it->second->hidden))
-          {
+          if (time_diff < local_options.fade_out_time_ms && !(it->second->hidden)) {
             CellUpdate cu;
             cu.row = grid_index;
             cu.col = i + 1;
@@ -55,25 +50,22 @@ void DCRenderTimer::Notify()
           }
         }
 
-        if ((ros_now_ms - it->second->time_rcvd_ms) < local_options.fade_out_time_ms)
-          local_grid->SetCellValue(grid_index, 9, wxString::Format(wxT("%u"), it->second->avg_rate));
+        if ((ros_now_ms - it->second->time_rcvd_ms) < local_options.fade_out_time_ms) {
+          local_grid->SetCellValue(
+            grid_index, 9,
+            wxString::Format(wxT("%u"), it->second->avg_rate));
+        }
 
         grid_index++;
       }
     }
-  }
-  else
-  {
-    for (auto it = local_msgs.rbegin(); it != local_msgs.rend(); ++it)
-    {
-      if (it->second->grid_index > -1)
-      {
-        for (uint8_t i = 0; i < it->second->last_updated_ms.size(); i++) 
-        {
+  } else {
+    for (auto it = local_msgs.rbegin(); it != local_msgs.rend(); ++it) {
+      if (it->second->grid_index > -1) {
+        for (uint8_t i = 0; i < it->second->last_updated_ms.size(); i++) {
           uint64_t time_diff = ros_now_ms - it->second->last_updated_ms[i];
 
-          if (time_diff < local_options.fade_out_time_ms && !(it->second->hidden))
-          {
+          if (time_diff < local_options.fade_out_time_ms && !(it->second->hidden)) {
             CellUpdate cu;
             cu.row = grid_index;
             cu.col = i + 1;
@@ -82,8 +74,11 @@ void DCRenderTimer::Notify()
           }
         }
 
-        if ((ros_now_ms - it->second->time_rcvd_ms) < local_options.fade_out_time_ms)
-          local_grid->SetCellValue(grid_index, 9, wxString::Format(wxT("%u"), it->second->avg_rate));
+        if ((ros_now_ms - it->second->time_rcvd_ms) < local_options.fade_out_time_ms) {
+          local_grid->SetCellValue(
+            grid_index, 9,
+            wxString::Format(wxT("%u"), it->second->avg_rate));
+        }
 
         grid_index++;
       }
@@ -92,24 +87,21 @@ void DCRenderTimer::Notify()
 
   wxGetApp().rcvd_msgs_mut.unlock(); // Unlock messages
 
-  for (auto it = cells_to_update.begin(); it != cells_to_update.end(); it++)
-  {
-    if (it->row >= 0 && it->row < local_grid->GetNumberRows())
-    {
+  for (auto it = cells_to_update.begin(); it != cells_to_update.end(); it++) {
+    if (it->row >= 0 && it->row < local_grid->GetNumberRows()) {
       wxColour cell_color;
       wxColour text_color;
       float norm_time_interval = it->time_diff / (float)(local_options.fade_out_time_ms - 100);
-      norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
+      norm_time_interval =
+        (norm_time_interval >
+        1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
       uint8_t text_fade = (uint8_t)((1.0 - norm_time_interval) * 255.0);
       text_color.Set(text_fade, text_fade, text_fade);
 
-      if (norm_time_interval < 0.5)
-      {
+      if (norm_time_interval < 0.5) {
         uint8_t green = (uint8_t)((norm_time_interval * 2.0) * 255.0);
         cell_color.Set(255, green, 0);
-      }
-      else
-      {
+      } else {
         uint8_t blue = (uint8_t)(((norm_time_interval - 0.5) * 2.0) * 255.0);
         cell_color.Set(255, 255, blue);
       }
@@ -119,18 +111,17 @@ void DCRenderTimer::Notify()
     }
   }
 
-  if (local_options.event_mode == EventMode::PLAYBACK)
-  {
+  if (local_options.event_mode == EventMode::PLAYBACK) {
     std::lock_guard<std::mutex> event_mut(wxGetApp().frame->event_mut);
 
-    if (wxGetApp().frame->got_new_event)
-    {
+    if (wxGetApp().frame->got_new_event) {
       uint64_t time_diff = ros_now_ms - wxGetApp().frame->most_recent_event_time;
 
-      if (time_diff < local_options.fade_out_time_ms)
-      {
+      if (time_diff < local_options.fade_out_time_ms) {
         float norm_time_interval = time_diff / (float)(local_options.fade_out_time_ms - 100);
-        norm_time_interval = (norm_time_interval > 1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
+        norm_time_interval =
+          (norm_time_interval >
+          1.0) ? 1.0 : ((norm_time_interval < 0.0) ? 0.0 : norm_time_interval);
         uint8_t color_fade = (uint8_t)(norm_time_interval * 255.0);
 
         wxColour panel_color;
@@ -141,8 +132,7 @@ void DCRenderTimer::Notify()
         text_color.Set(color_fade, color_fade, color_fade);
         wxGetApp().frame->pub_event_txt->SetForegroundColour(text_color);
 
-        if (norm_time_interval == 1.0)
-        {
+        if (norm_time_interval == 1.0) {
           RCLCPP_INFO(local_node->get_logger(), "Event fade is done.");
           wxGetApp().frame->got_new_event = false;
         }
@@ -150,23 +140,23 @@ void DCRenderTimer::Notify()
     }
   }
 
-  if (wxGetApp().frame->new_grid_select)
-  {
+  if (wxGetApp().frame->new_grid_select) {
     wxArrayInt selected_rows = wxGetApp().frame->main_grid->GetSelectedRows();
 
-    if (selected_rows.GetCount() == 1)
+    if (selected_rows.GetCount() == 1) {
       wxGetApp().frame->message_analyzer_btn->Enable(true);
-    else
+    } else {
       wxGetApp().frame->message_analyzer_btn->Enable(false);
+    }
 
     wxGetApp().frame->new_grid_select = false;
   }
 }
 
 DCFrame::DCFrame(
-  const wxString& title,
-  const wxPoint& pos,
-  const wxSize& size)
+  const wxString & title,
+  const wxPoint & pos,
+  const wxSize & size)
 : wxFrame(NULL, wxID_ANY, title, pos, size),
   got_new_event(false),
   most_recent_event_time(0)
@@ -252,8 +242,7 @@ DCFrame::DCFrame(
 
   main_grid->SetColAttr(0, id_attr);
 
-  for (uint8_t i = 1; i < 9; i++)
-  {
+  for (uint8_t i = 1; i < 9; i++) {
     wxGridCellAttr * byte_attr = new wxGridCellAttr();
     byte_attr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
 
@@ -264,7 +253,9 @@ DCFrame::DCFrame(
 
   // Create the Message Analyzer button
   message_analyzer_btn = std::make_unique<wxButton>();
-  message_analyzer_btn->Create(this, static_cast<int>(ButtonType::MESSAGE_ANALYZER), "Analyze Message");
+  message_analyzer_btn->Create(
+    this, static_cast<int>(ButtonType::MESSAGE_ANALYZER),
+    "Analyze Message");
   message_analyzer_btn->Enable(false); // Start disabled
 
   message_analyzer_sizer->Add(message_analyzer_btn.get(), expand_flag.Proportion(1));
@@ -300,7 +291,11 @@ DCFrame::DCFrame(
   pub_event_btn = std::make_unique<wxButton>();
   pub_event_txt = std::make_unique<wxStaticText>();
 
-  pub_event_btn->Create(event_panel.get(), static_cast<int>(ButtonType::PUBLISH_EVENT), "Publish Event", wxPoint(0, 0), wxSize(200, 50));
+  pub_event_btn->Create(
+    event_panel.get(), static_cast<int>(ButtonType::PUBLISH_EVENT), "Publish Event", wxPoint(
+      0,
+      0), wxSize(
+      200, 50));
   pub_event_txt->Create(event_panel.get(), wxID_ANY, "");
   pub_event_txt->SetLabelMarkup("<b><big>Event Published</big></b>");
   pub_event_txt->SetForegroundColour(wxColour(255, 255, 255));
@@ -349,31 +344,29 @@ void DCFrame::RedrawMessages()
   auto local_table = local_grid->GetTable();
   auto & local_msgs = wxGetApp().rcvd_msgs;
 
-  if (local_table->GetNumberRows() > 0)
+  if (local_table->GetNumberRows() > 0) {
     local_table->DeleteRows(0, local_table->GetNumberRows());
+  }
 
   int item_count = wxGetApp().frame->selector_box->GetCount();
 
-  if (item_count > 0)
-  {
-    for (int i = item_count - 1; i > -1; --i)
-    {
+  if (item_count > 0) {
+    for (int i = item_count - 1; i > -1; --i) {
       wxGetApp().frame->selector_box->Delete(i);
     }
   }
 
-  if (local_grid->IsSortOrderAscending())
-  {
-    for (auto it = local_msgs.begin(); it != local_msgs.end(); ++it)
-    {
+  if (local_grid->IsSortOrderAscending()) {
+    for (auto it = local_msgs.begin(); it != local_msgs.end(); ++it) {
       local_table->AppendRows();
       int row_index = local_table->GetNumberRows() - 1;
 
       local_table->SetValue(row_index, 0, wxString::Format(wxT("0x%03X"), it->first));
 
-      for (uint8_t i = 0; i < it->second->bytes.size(); i++)
-      {
-        local_table->SetValue(row_index, i + 1, wxString::Format(wxT("%02X"), it->second->bytes[i]));
+      for (uint8_t i = 0; i < it->second->bytes.size(); i++) {
+        local_table->SetValue(
+          row_index, i + 1,
+          wxString::Format(wxT("%02X"), it->second->bytes[i]));
       }
 
       local_table->SetValue(row_index, 9, wxString::Format(wxT("%u"), 0));
@@ -381,26 +374,25 @@ void DCFrame::RedrawMessages()
       // Add to selector box
       int selector_index = selector_box->Append(wxString::Format(wxT("0x%03X"), it->first));
 
-      if (it->second->hidden)
+      if (it->second->hidden) {
         local_grid->HideRow(row_index);
-      else
+      } else {
         selector_box->Check(selector_index);
+      }
 
       it->second->grid_index = row_index;
     }
-  }
-  else
-  {
-    for (auto it = local_msgs.rbegin(); it != local_msgs.rend(); ++it)
-    {
+  } else {
+    for (auto it = local_msgs.rbegin(); it != local_msgs.rend(); ++it) {
       local_table->AppendRows();
       int row_index = local_table->GetNumberRows() - 1;
 
       local_table->SetValue(row_index, 0, wxString::Format(wxT("0x%03X"), it->first));
 
-      for (uint8_t i = 0; i < it->second->bytes.size(); i++)
-      {
-        local_table->SetValue(row_index, i + 1, wxString::Format(wxT("%02X"), it->second->bytes[i]));
+      for (uint8_t i = 0; i < it->second->bytes.size(); i++) {
+        local_table->SetValue(
+          row_index, i + 1,
+          wxString::Format(wxT("%02X"), it->second->bytes[i]));
       }
 
       local_table->SetValue(row_index, 9, wxString::Format(wxT("%u"), 0));
@@ -408,10 +400,11 @@ void DCFrame::RedrawMessages()
       // Add to selector box
       int selector_index = selector_box->Append(wxString::Format(wxT("0x%03X"), it->first));
 
-      if (it->second->hidden)
+      if (it->second->hidden) {
         local_grid->HideRow(row_index);
-      else
+      } else {
         selector_box->Check(selector_index);
+      }
 
       it->second->grid_index = row_index;
     }
@@ -420,57 +413,56 @@ void DCFrame::RedrawMessages()
   local_grid->ForceRefresh();
 }
 
-void DCFrame::OnExit(wxCommandEvent& event)
+void DCFrame::OnExit(wxCommandEvent & event)
 {
   (void)event;
   rclcpp::shutdown();
   Close(true);
 }
 
-void DCFrame::OnAbout(wxCommandEvent& event)
+void DCFrame::OnAbout(wxCommandEvent & event)
 {
   (void)event;
-  wxMessageBox("Copyright 2017 Joshua Whitley, All Rights Reserved", "About DeCANstructor", wxOK | wxICON_INFORMATION );
+  wxMessageBox(
+    "Copyright 2017 Joshua Whitley, All Rights Reserved", "About DeCANstructor",
+    wxOK | wxICON_INFORMATION);
 }
 
-void DCFrame::OnMsgsUpdate(wxThreadEvent& event)
+void DCFrame::OnMsgsUpdate(wxThreadEvent & event)
 {
-  if (event.GetString() == "true")
-  {
+  if (event.GetString() == "true") {
     // New message - Redraw the grid
     RedrawMessages();
-  }
-  else if (event.GetString() == "false")
-  {
+  } else if (event.GetString() == "false") {
     // Existing message - Just update the grid row
     std::lock_guard<std::mutex> callback_mut(wxGetApp().rcvd_msgs_mut);
     auto & local_msgs = wxGetApp().rcvd_msgs;
     auto found_msg = local_msgs[event.GetInt()];
 
-    for (uint8_t i = 0; i < found_msg->bytes.size(); i++)
-    {
-      if (found_msg->bytes[i] != found_msg->last_bytes[i])
-      {
-        main_grid->SetCellValue(found_msg->grid_index, i + 1, wxString::Format(wxT("%02X"), found_msg->bytes[i]));
+    for (uint8_t i = 0; i < found_msg->bytes.size(); i++) {
+      if (found_msg->bytes[i] != found_msg->last_bytes[i]) {
+        main_grid->SetCellValue(
+          found_msg->grid_index, i + 1,
+          wxString::Format(wxT("%02X"), found_msg->bytes[i]));
       }
     }
 
     uint64_t time_diff = found_msg->time_rcvd_ms - found_msg->time_last_rcvd_ms;
-    
+
     // The new time difference should be
     // less than 1 minute (to be safe)
-    if (time_diff < 60000)
-    {
+    if (time_diff < 60000) {
       // Make sure we don't have an average already
-      if (found_msg->avg_rate == 0)
+      if (found_msg->avg_rate == 0) {
         found_msg->avg_rate = (unsigned int)time_diff;
-      else
+      } else {
         found_msg->avg_rate = (found_msg->avg_rate + (unsigned int)time_diff) / 2;
+      }
     }
   }
 }
 
-void DCFrame::OnMessageAnalyzerClick(wxCommandEvent& event)
+void DCFrame::OnMessageAnalyzerClick(wxCommandEvent & event)
 {
   (void)event;
 
@@ -480,57 +472,56 @@ void DCFrame::OnMessageAnalyzerClick(wxCommandEvent& event)
   ma_frame->Show(true);
 }
 
-void DCFrame::OnSelectorBoxTick(wxCommandEvent& event)
+void DCFrame::OnSelectorBoxTick(wxCommandEvent & event)
 {
-  auto& local_selector_box = wxGetApp().frame->selector_box;
+  auto & local_selector_box = wxGetApp().frame->selector_box;
 
-  if (local_selector_box->IsChecked(event.GetInt()))
+  if (local_selector_box->IsChecked(event.GetInt())) {
     wxGetApp().frame->main_grid->ShowRow(event.GetInt());
-  else
+  } else {
     wxGetApp().frame->main_grid->HideRow(event.GetInt());
+  }
 
   std::lock_guard<std::mutex> selector_mut(wxGetApp().rcvd_msgs_mut);
 
-  auto& local_msgs = wxGetApp().rcvd_msgs;
+  auto & local_msgs = wxGetApp().rcvd_msgs;
 
-  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
-  {
-    if (it->second->grid_index == event.GetInt())
+  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++) {
+    if (it->second->grid_index == event.GetInt()) {
       it->second->hidden = !local_selector_box->IsChecked(event.GetInt());
+    }
   }
 }
 
-void DCFrame::OnUncheckAll(wxCommandEvent& event)
+void DCFrame::OnUncheckAll(wxCommandEvent & event)
 {
   (void)event;
 
   std::lock_guard<std::mutex> uncheck_mut(wxGetApp().rcvd_msgs_mut);
-  auto& local_msgs = wxGetApp().rcvd_msgs;
+  auto & local_msgs = wxGetApp().rcvd_msgs;
 
-  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
-  {
+  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++) {
     it->second->hidden = true;
     wxGetApp().frame->main_grid->HideRow(it->second->grid_index);
     wxGetApp().frame->selector_box->Check(it->second->grid_index, false);
   }
 }
 
-void DCFrame::OnCheckAll(wxCommandEvent& event)
+void DCFrame::OnCheckAll(wxCommandEvent & event)
 {
   (void)event;
 
   std::lock_guard<std::mutex> check_mut(wxGetApp().rcvd_msgs_mut);
-  auto& local_msgs = wxGetApp().rcvd_msgs;
+  auto & local_msgs = wxGetApp().rcvd_msgs;
 
-  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++)
-  {
+  for (auto it = local_msgs.begin(); it != local_msgs.end(); it++) {
     it->second->hidden = false;
     wxGetApp().frame->main_grid->ShowRow(it->second->grid_index);
     wxGetApp().frame->selector_box->Check(it->second->grid_index, true);
   }
 }
 
-void DCFrame::OnPublishEvent(wxCommandEvent& event)
+void DCFrame::OnPublishEvent(wxCommandEvent & event)
 {
   (void)event;
   wxGetApp().ros_node->publish_can_event();
@@ -540,7 +531,8 @@ void DCFrame::OnEventPublished()
 {
   std::lock_guard<std::mutex> event_mut(wxGetApp().frame->event_mut);
   wxGetApp().frame->got_new_event = true;
-  wxGetApp().frame->most_recent_event_time = wxGetApp().ros_node->get_ros_time().time_since_epoch().count() / 1000000;
+  wxGetApp().frame->most_recent_event_time =
+    wxGetApp().ros_node->get_ros_time().time_since_epoch().count() / 1000000;
 }
 
 void DCFrame::OnCanMsg(const CanFrameMsgT::SharedPtr msg)
@@ -561,12 +553,12 @@ void DCFrame::OnCanMsg(const CanFrameMsgT::SharedPtr msg)
   if (found_msg != local_msgs.end()) {
     // The message has already been received.
     // Store the old bytes for later comparison.
-    std::copy(found_msg->second->bytes.begin(), found_msg->second->bytes.end(), found_msg->second->last_bytes.begin());
+    std::copy(
+      found_msg->second->bytes.begin(),
+      found_msg->second->bytes.end(), found_msg->second->last_bytes.begin());
 
-    for (uint8_t i = 0; i < msg->data.size(); i++)
-    {
-      if (msg->data[i] != found_msg->second->bytes[i])
-      {
+    for (uint8_t i = 0; i < msg->data.size(); i++) {
+      if (msg->data[i] != found_msg->second->bytes[i]) {
         found_msg->second->bytes[i] = msg->data[i];
         found_msg->second->last_updated_ms[i] = ros_now_ms;
       }
@@ -580,8 +572,7 @@ void DCFrame::OnCanMsg(const CanFrameMsgT::SharedPtr msg)
     // This is a new message.
     auto new_msg = std::make_shared<CanMsgDetail>();
 
-    for (uint8_t i = 0; i < msg->data.size(); i++)
-    {
+    for (uint8_t i = 0; i < msg->data.size(); i++) {
       new_msg->bytes.push_back(msg->data[i]);
       new_msg->last_bytes.push_back(msg->data[i]);
       new_msg->last_updated_ms.push_back(ros_now_ms);
@@ -597,26 +588,27 @@ void DCFrame::OnCanMsg(const CanFrameMsgT::SharedPtr msg)
   wxGetApp().frame->GetEventHandler()->QueueEvent(evt.Clone());
 }
 
-void DCFrame::OnGridSelect(wxGridEvent& event)
+void DCFrame::OnGridSelect(wxGridEvent & event)
 {
-  if (event.GetRow() != -1)
+  if (event.GetRow() != -1) {
     new_grid_select = true;
+  }
 
   event.Skip();
 }
 
-void DCFrame::OnSortById(wxGridEvent& event)
+void DCFrame::OnSortById(wxGridEvent & event)
 {
-  if (event.GetCol() == 0)
-  {
-    auto& local_grid = wxGetApp().frame->main_grid;
+  if (event.GetCol() == 0) {
+    auto & local_grid = wxGetApp().frame->main_grid;
 
-    if (local_grid->IsSortOrderAscending())
+    if (local_grid->IsSortOrderAscending()) {
       // Switch to descending
       local_grid->SetSortingColumn(0, false);
-    else
+    } else {
       // Switch back to ascending
       local_grid->SetSortingColumn(0, true);
+    }
 
     local_grid->GetGridColLabelWindow()->Update();
     RedrawMessages();
