@@ -31,7 +31,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 ament_auto_add_library(${PROJECT_NAME}_nodes
-  src/message_analyzer.cpp
   src/decanstructor_node.cpp
 )
 
@@ -46,13 +45,18 @@ foreach(rmw_implementation ${rmw_implementations2})
   endforeach()
 endforeach()
 
-target_link_libraries(${PROJECT_NAME}_nodes
-  ${wxWidgets_LIBRARIES}
-)
-
 rclcpp_components_register_node(${PROJECT_NAME}_nodes
   PLUGIN "DecanstructorNode"
   EXECUTABLE ${PROJECT_NAME}_node
+)
+
+ament_auto_add_executable(${PROJECT_NAME}_app
+  src/message_analyzer.cpp
+  src/decanstructor_app.cpp
+)
+
+target_link_libraries(${PROJECT_NAME}_app
+  ${wxWidgets_LIBRARIES}
 )
 
 if(BUILD_TESTING)
